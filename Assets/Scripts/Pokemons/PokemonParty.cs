@@ -16,6 +16,11 @@ public class PokemonParty : MonoBehaviour
         }
     }
 
+    public PokemonParty(List<Pokemon> _pokemons)
+    {
+        this.pokemons = _pokemons;
+    }
+
     private void Start()
     {
         foreach (var pokemon in pokemons)

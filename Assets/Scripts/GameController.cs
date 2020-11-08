@@ -11,6 +11,8 @@ public class GameController : MonoBehaviour
     [SerializeField] GameObject enemyController;
     [SerializeField] BattleSystem battleSystem;
     [SerializeField] GameObject mainMenu;
+
+    public bool isTrainerBattle;
     
     GameState state;
 
@@ -39,7 +41,20 @@ public class GameController : MonoBehaviour
         mainMenu.SetActive(false);
 
         var playerParty = playerController.GetComponent<PokemonParty>();
-        var enemyParty = enemyController.GetComponent<PokemonParty>(); //esto podria ser un wild area, pero de momento lo dejamos asi
+        PokemonParty enemyParty = null;
+        //Aqui deberia diferenciar entre si es un entrenador o un pokemon salvaje
+        if (isTrainerBattle)
+        {
+            enemyParty = enemyController.GetComponent<PokemonParty>();
+        }
+        else
+        {
+            //De momento solo hay un pokemon salvaje por encuentro, pero dejamos que sea con una lista por si hubiera mas
+            List<Pokemon> wildPokemonsAux = new List<Pokemon>();
+            wildPokemonsAux.Add(enemyController.GetComponent<MapArea>().GetRandomPokemon());
+            enemyParty = new PokemonParty(wildPokemonsAux);
+        }
+        
         battleSystem.StartBattle(playerParty, enemyParty);
         //playerController.gameObject.SetActive(false);
         //En caso de realmente pasar del juego a la pantalla de batalla habria que cambiar la camara, ya que no serían la misma, pero en este caso solo tenemos una
@@ -58,6 +73,17 @@ public class GameController : MonoBehaviour
         {
 
         }
+    }
+
+    //Metodo temporal mientras no haya juego y solo menu
+    public void ActiveTrainerBattle()
+    {
+        isTrainerBattle = true;
+    }
+    //Metodo temporal mientras no haya juego y solo menu
+    public void DeactiveTrainerBattle()
+    {
+        isTrainerBattle = false;
     }
 
 }

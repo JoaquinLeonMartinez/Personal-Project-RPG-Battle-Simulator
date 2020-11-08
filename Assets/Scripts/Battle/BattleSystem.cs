@@ -3,14 +3,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum BattleState { Start, ActionSelection, MoveSelection, PerformMove, Busy, PartyScreen }
+public enum BattleState { Start, ActionSelection, MoveSelection, PerformMove, Busy, PartyScreen, BattleOver }
 
 public class BattleSystem : MonoBehaviour
 {
     [SerializeField] BattleUnit playerUnit;
     [SerializeField] BattleUnit enemyUnit;
-    [SerializeField] BattleHud playerHud;
-    [SerializeField] BattleHud enemyHud;
     [SerializeField] BattleDialogBox dialogBox;
     [SerializeField] PartyScreen partyScreen;
 
@@ -28,6 +26,9 @@ public class BattleSystem : MonoBehaviour
     {
         this.playerParty = playerParty;
         this.enemyParty = enemyParty;
+        currentAction = 0;
+        currentMove = 0;
+        currentMember = 0;
         StartCoroutine(SetupBattle());
     }
 
@@ -51,8 +52,6 @@ public class BattleSystem : MonoBehaviour
     {
         playerUnit.SetUp(playerParty.GetHealthyPokemon()); 
         enemyUnit.SetUp(enemyParty.GetHealthyPokemon());
-        playerHud.setData(playerUnit.Pokemon);
-        enemyHud.setData(enemyUnit.Pokemon);
 
         partyScreen.Init();
 
@@ -218,21 +217,31 @@ public class BattleSystem : MonoBehaviour
 
     IEnumerator SwitchPokemon(Pokemon newPokemon)
     {
-        if (playerUnit.Pokemon.CurrentHP > 0)
+        bool defeatedPokemon = !(playerUnit.Pokemon.CurrentHP > 0); //con esto comprobamos si el cambio se debe a que has muerto o si es voluntario
+        if (!defeatedPokemon)
         {
             yield return dialogBox.TypeDialog($"Come back {playerUnit.Pokemon.Base.Name}");
-            playerUnit.PlayFaintAnimation(); //TODO. Esto es de momento hasta qu haya una animacion de cambiar
+            playerUnit.PlayFaintAnimation(); //TODO. Esto es de momento hasta que haya una animacion de cambiar
             yield return new WaitForSeconds(2f);
         }
 
         playerUnit.SetUp(newPokemon);
-        playerHud.setData(newPokemon);
 
         dialogBox.SetMoveNames(newPokemon.Moves);
 
         yield return dialogBox.TypeDialog($"Go {newPokemon.Base.Name}.");
 
-        StartCoroutine(EnemyMove());
+        //TODO: Cambiamos el orden del equipo (Para esto deberiamos poder conservar el orden del equipo original, como de momento es una movida pasamos del tema)
+
+        if (!defeatedPokemon) //esto es que cambias porque quieres, de modo que el enemigo te ataca de free
+        {
+            StartCoroutine(EnemyMove());
+        }
+        else // esto es que cambias porque te han matado un pokemon, de modo que no atacas
+        {
+            ActionSelection();
+        }
+        
 
     }
 
@@ -258,28 +267,59 @@ public class BattleSystem : MonoBehaviour
         state = BattleState.PerformMove; //con esto indicamosque el jeugo esta calculando sus cosillas y que no haga nada mientras tanto
 
         var move = playerUnit.Pokemon.Moves[currentMove];
-        move.PP--; //A la hora de seleccionar el movimiento hay que poner la condicion de que no se pueda seleccionar si no le quedan PPs (aqui ya es demasiado tarde proque ya esta seleccionado)
-        yield return dialogBox.TypeDialog($"{playerUnit.Pokemon.Base.Name} used { move.Base.Name}");
+        yield return RunMove(playerUnit, enemyUnit, move);
 
-        playerUnit.PlayAttackAnimation();
+        //Si la batalla no acaba la fiesta continua:
+        if (state == BattleState.PerformMove)
+        {
+            StartCoroutine(EnemyMove());
+        }
+    }
+
+    IEnumerator RunMove(BattleUnit sourceUnit, BattleUnit targetUnit, Move move)
+    {
+        move.PP--; //A la hora de seleccionar el movimiento hay que poner la condicion de que no se pueda seleccionar si no le quedan PPs (aqui ya es demasiado tarde proque ya esta seleccionado)
+        yield return dialogBox.TypeDialog($"{sourceUnit.Pokemon.Base.Name} used { move.Base.Name}");
+
+        sourceUnit.PlayAttackAnimation();
         yield return new WaitForSeconds(1f);
 
-        enemyUnit.PlayHitAnimation();
+        targetUnit.PlayHitAnimation();
 
-        var damageDetails = enemyUnit.Pokemon.TakeDamage(move, playerUnit.Pokemon);
-        yield return enemyHud.UpdateHP();
+        var damageDetails = targetUnit.Pokemon.TakeDamage(move, sourceUnit.Pokemon);
+        yield return targetUnit.Hud.UpdateHP();
         yield return ShowDamageDetails(damageDetails);
 
         if (damageDetails.Fainted) //si el enemigo muere
         {
-            yield return dialogBox.TypeDialog($"{enemyUnit.Pokemon.Base.name} fainted");
+            yield return dialogBox.TypeDialog($"{targetUnit.Pokemon.Base.name} fainted");
 
-            enemyUnit.PlayFaintAnimation();
+            targetUnit.PlayFaintAnimation();
 
             yield return new WaitForSeconds(2f);
 
+            yield return CheckForBattleOver(targetUnit);
 
+        }
+    }
+
+    IEnumerator CheckForBattleOver(BattleUnit faintedUnit) //simplificar este metodo en la medida de lo posible!!
+    {
+        if (faintedUnit.IsPlayer)
+        {
             //Comprobamos si quedan mas pokemons vivos:
+            var nextPokemon = playerParty.GetHealthyPokemon();
+            if (nextPokemon != null)
+            {
+                OpenParyScreen();
+            }
+            else
+            {
+                BattleOver(false);
+            }
+        }
+        else
+        {
             var nextPokemon = enemyParty.GetHealthyPokemon();
             if (nextPokemon != null)
             {
@@ -287,28 +327,20 @@ public class BattleSystem : MonoBehaviour
                 //CopyPaste temporal:
                 //-----------------------------------------------------------------------------------------------------------------------
                 enemyUnit.SetUp(nextPokemon);
-                enemyHud.setData(nextPokemon);
 
-                yield return dialogBox.TypeDialog($"Next enemy pokemon is {nextPokemon.Base.Name}.");
+                yield return (dialogBox.TypeDialog($"Next enemy pokemon is {nextPokemon.Base.Name}."));
+
+                yield return new WaitForSeconds(2f);
 
                 ActionSelection();
                 //-----------------------------------------------------------------------------------------------------------------------
             }
             else
             {
-                //Curar a los pokemons del enemigo:
                 enemyParty.HealthParty();
-                OnBattleOver(true); //ACABA EL JUEGO
+                BattleOver(true);
             }
-
-
-            
         }
-        else //si el enemigo sobrevive atacara
-        {
-            StartCoroutine(EnemyMove());
-        }
-
     }
 
     IEnumerator EnemyMove()
@@ -318,47 +350,21 @@ public class BattleSystem : MonoBehaviour
         //TODO: hay que comprobar que le queden PPs y validar que le queden movimientos, sino habra que hacer el movimiento combate
         var move = enemyUnit.Pokemon.GetRandomMove(); //Esto en el futuro sera una IA
 
-        move.PP--;
-        yield return dialogBox.TypeDialog($"{enemyUnit.Pokemon.Base.Name} used { move.Base.Name}");
+        yield return RunMove(enemyUnit, playerUnit, move);
 
-        enemyUnit.PlayAttackAnimation();
-        yield return new WaitForSeconds(1f);
-
-        playerUnit.PlayHitAnimation();
-
-        var damageDetails = playerUnit.Pokemon.TakeDamage(move, enemyUnit.Pokemon);
-        yield return playerHud.UpdateHP();
-        yield return ShowDamageDetails(damageDetails);
-
-        if (damageDetails.Fainted) //SI TU POKEMON MUERE
-        {
-            yield return dialogBox.TypeDialog($"{playerUnit.Pokemon.Base.name} fainted");
-
-            playerUnit.PlayFaintAnimation();
-
-            yield return new WaitForSeconds(2f);
-
-
-            //Comprobamos si quedan mas pokemons vivos:
-            var nextPokemon = playerParty.GetHealthyPokemon();
-            if (nextPokemon != null)
-            {
-                //se selecciona el siguiente automaticamente de momento, en un futuro se elegira en el equipo
-                OpenParyScreen();
-
-            }
-            else
-            {
-                OnBattleOver(false); //ACABA EL JUEGO
-            }
-
-            
-
-        }
-        else //SI SOBREVIVES VUELVES A SELECCIONAR MOVIMIENTO
+        //Si la batalla no acaba la fiesta continua:
+        if (state == BattleState.PerformMove)
         {
             ActionSelection();
         }
+            
+
+    }
+
+    void BattleOver(bool won)
+    {
+        state = BattleState.BattleOver;
+        OnBattleOver(won);
     }
 
     IEnumerator ShowDamageDetails(DamageDetails damageDetails)
