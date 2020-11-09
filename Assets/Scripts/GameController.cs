@@ -13,7 +13,7 @@ public class GameController : MonoBehaviour
     [SerializeField] GameObject mainMenu;
 
     public bool isTrainerBattle;
-    
+     
     GameState state;
 
     private void Start()
@@ -67,11 +67,11 @@ public class GameController : MonoBehaviour
         mainMenu.SetActive(true);
         if (won)
         {
-
+            //TODO
         }
         else
         {
-
+            //TODO
         }
     }
 
