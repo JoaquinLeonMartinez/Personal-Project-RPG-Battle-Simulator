@@ -239,6 +239,7 @@ public class BattleSystem : MonoBehaviour
         }
         else // esto es que cambias porque te han matado un pokemon, de modo que no atacas
         {
+            // El futuro -->ChooseFirstTurn();
             ActionSelection();
         }
         
@@ -286,20 +287,44 @@ public class BattleSystem : MonoBehaviour
 
         targetUnit.PlayHitAnimation();
 
-        var damageDetails = targetUnit.Pokemon.TakeDamage(move, sourceUnit.Pokemon);
-        yield return targetUnit.Hud.UpdateHP();
-        yield return ShowDamageDetails(damageDetails);
+        if (move.Base.Category == MoveCategory.Status)
+        {
+            yield return RunMoveEffects(move, sourceUnit.Pokemon, targetUnit.Pokemon);
+        }
+        else
+        {
+            var damageDetails = targetUnit.Pokemon.TakeDamage(move, sourceUnit.Pokemon);
+            yield return targetUnit.Hud.UpdateHP();
+            yield return ShowDamageDetails(damageDetails);
+        }
 
-        if (damageDetails.Fainted) //si el enemigo muere
+        if (targetUnit.Pokemon.CurrentHP <= 0) //si el target muere
         {
             yield return dialogBox.TypeDialog($"{targetUnit.Pokemon.Base.name} fainted");
 
             targetUnit.PlayFaintAnimation();
 
             yield return new WaitForSeconds(2f);
-
             yield return CheckForBattleOver(targetUnit);
+        }
+    }
 
+    IEnumerator RunMoveEffects(Move move, Pokemon source, Pokemon target)
+    {
+        var effects = move.Base.Effects;
+        if (effects.Boosts != null) //de momento solo contemplamos los ataques de estado que implican boosts
+        {
+            if (move.Base.Target == MoveTarget.Self)
+            {
+                source.ApplyBoosts(effects.Boosts);
+            }
+            else if (move.Base.Target == MoveTarget.Foe)
+            {
+                target.ApplyBoosts(effects.Boosts);
+            }
+            //Mostramos en el dialogo las bajadas y subidas de stats de ambos pokemons
+            yield return ShowStatusChanges(source);
+            yield return ShowStatusChanges(target);
         }
     }
 
@@ -337,7 +362,6 @@ public class BattleSystem : MonoBehaviour
             }
             else
             {
-                enemyParty.HealthParty();
                 BattleOver(true);
             }
         }
@@ -364,6 +388,13 @@ public class BattleSystem : MonoBehaviour
     void BattleOver(bool won)
     {
         state = BattleState.BattleOver;
+        //resteamos el estado de los pokemons
+        playerParty.Pokemons.ForEach(p => p.OnBattleOver());
+        enemyParty.Pokemons.ForEach(p => p.OnBattleOver());
+
+        //Esto es temporal, es para que si juegas varias veces con el entrenador este tenga los pokemons curados
+        enemyParty.HealthParty();
+
         OnBattleOver(won);
     }
 
@@ -380,6 +411,32 @@ public class BattleSystem : MonoBehaviour
         else if (damageDetails.Effectiveness < 1)
         {
             yield return dialogBox.TypeDialog($"It´s not very effective!");
+        }
+    }
+
+    IEnumerator ShowStatusChanges(Pokemon pokemon)
+    {
+        while (pokemon.StatusChanges.Count > 0)
+        {
+            var message = pokemon.StatusChanges.Dequeue();
+            yield return dialogBox.TypeDialog(message);
+        }
+    }
+
+    void ChooseFirstTurn() //ESTO NO ME CONVENCE NADA, PERO DE MOMENTO LO DEJAREMOS ASI
+    {
+        //TODO:
+        //En caso de ser iguales atacas tu primero, pero esto en un futuro sera un random
+        //En el futuro se tendran en cuenta las prioridad
+        //Tener en cuenta a todos los pokemons de la batalla, no solo a 2 (para cuando haya batallas multiples)
+
+        if (playerUnit.Pokemon.Speed >= enemyUnit.Pokemon.Speed)
+        {
+            ActionSelection();
+        }
+        else
+        {
+            StartCoroutine(EnemyMove());
         }
     }
 }

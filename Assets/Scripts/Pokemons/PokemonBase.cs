@@ -132,6 +132,16 @@ public enum PokemonType
     Dark
 }
 
+public enum Stat
+{
+    Attack,
+    Defense,
+    SpAttack,
+    SpDefense,
+    Speed,
+    Accurarcy
+}
+
 public class TypeChart
 {
     static float[][] chart =

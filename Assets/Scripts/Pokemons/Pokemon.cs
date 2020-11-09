@@ -24,15 +24,21 @@ public class Pokemon
 
     public List<Move> Moves { get; set; }
 
+    public Dictionary<Stat, int> Stats { get; private set; }
+
+    public Dictionary<Stat, int> StatBoosts { get; private set; } //el integer valdra entre -6 y 6 debido a que es lo maximo que se puede boostear una caracteristica
+
+    public Queue<string> StatusChanges { get; private set; }
+
     float criticalHitRate = 6.25f;
 
     public void Init()
     {
-
-        this.CurrentHP = MaxHP; //no debe ser Hp porque entonces tendria la HP base del pokemon y no la real
         //Por defecto el pokemon tendra los ultimos movimientos que aprende por nivel
 
         Moves = new List<Move>();
+        StatusChanges = new Queue<string>();
+
         foreach (var move in Base.LearnableMoves)
         {
             if (move.Level <= Level)
@@ -45,6 +51,80 @@ public class Pokemon
             }
         }
 
+        CalculateStats();
+        this.CurrentHP = MaxHP;
+        ResetStateBoosts();
+
+    }
+
+    void ResetStateBoosts()
+    {
+        StatBoosts = new Dictionary<Stat, int>()
+        {
+            {Stat.Attack, 0},
+            {Stat.Defense, 0},
+            {Stat.SpAttack, 0},
+            {Stat.SpDefense, 0},
+            {Stat.Speed, 0},
+            {Stat.Accurarcy, 0}
+        };
+    }
+
+    public void CalculateStats()
+    {
+        //TODO: A esto habra que añadir los IVS y los EVs: formula original: https://bulbapedia.bulbagarden.net/wiki/Statistic#:~:text=When%20a%20Pok%C3%A9mon%20grows%20a,individual%20value%20and%20effort%20value.
+        Stats = new Dictionary<Stat, int>();
+        Stats.Add(Stat.Attack, Mathf.FloorToInt((Base.Attack * Level) / 100) + 5);
+        Stats.Add(Stat.Defense, Mathf.FloorToInt((Base.Defense * Level) / 100) + 5);
+        Stats.Add(Stat.SpAttack, Mathf.FloorToInt((Base.SpAttack * Level) / 100) + 5);
+        Stats.Add(Stat.SpDefense, Mathf.FloorToInt((Base.SpDefense * Level) / 100) + 5);
+        Stats.Add(Stat.Speed, Mathf.FloorToInt((Base.Speed * Level) / 100) + 5);
+        Stats.Add(Stat.Accurarcy, 1);
+
+        MaxHP = Mathf.FloorToInt((Base.Hp * Level) / 100) + Level + 10;
+    }
+
+    public int GetStat(Stat stat)
+    {
+        int statVal = Stats[stat];
+
+        //TODO: Apply boosts and drops
+        int boost = StatBoosts[stat];
+        var boostValues = new float[] { 1f, 1.5f, 2f, 2.5f, 3f, 3.5f, 4f};
+
+        if (boost >= 0)
+        {
+            statVal = Mathf.FloorToInt(statVal * boostValues[boost]);
+        }
+        else
+        {
+            statVal = Mathf.FloorToInt(statVal / boostValues[-boost]);
+        }
+
+
+        return statVal;
+    }
+
+    public void ApplyBoosts(List<StatBoost> statBoosts)//esta funcion se utiliza cuando recibes un ataque que baja o sube las estadisticas, el paramtro es la estadistica a modificar
+    {
+        foreach (var statBoost in statBoosts)
+        {
+            var stat = statBoost.stat;
+            var boost = statBoost.boost;
+
+            StatBoosts[stat] = Mathf.Clamp(StatBoosts[stat] + boost, -6, 6);
+
+            if(boost > 0)
+            {
+                StatusChanges.Enqueue($"{Base.Name}`s {stat} rose!");
+            }
+            else
+            {
+                StatusChanges.Enqueue($"{Base.Name}`s {stat} fell!");
+            }
+
+            Debug.Log($"{stat} has been boosted to {StatBoosts[stat]}");
+        }
     }
 
     public Pokemon(PokemonBase _pBase, int _level)
@@ -70,37 +150,33 @@ public class Pokemon
         */
     }
 
-    //Esto podrian ser metodos normales, pero eso seria demasiaddo facil, lo haremos con el get de la propia variable:
-    //TODO: A esto habra que añadir los IVS y los EVs: formula original: https://bulbapedia.bulbagarden.net/wiki/Statistic#:~:text=When%20a%20Pok%C3%A9mon%20grows%20a,individual%20value%20and%20effort%20value.
+
     public int Attack
     {
-        get { return Mathf.FloorToInt((Base.Attack * Level) / 100) + 5; } //formula del juego original
+        get { return GetStat(Stat.Attack); } 
     }
 
     public int Defense
     {
-        get { return Mathf.FloorToInt((Base.Defense * Level) / 100) + 5; } //formula del juego original
+        get { return GetStat(Stat.Defense); }
     }
 
     public int SpAttack
     {
-        get { return Mathf.FloorToInt((Base.SpAttack * Level) / 100) + 5; } //formula del juego original
+        get { return GetStat(Stat.SpAttack); } 
     }
 
     public int SpDefense
     {
-        get { return Mathf.FloorToInt((Base.SpDefense * Level) / 100) + 5; } //formula del juego original
+        get { return GetStat(Stat.SpDefense); } 
     }
 
     public int Speed
     {
-        get { return Mathf.FloorToInt((Base.Speed * Level) / 100) + 5; } //formula del juego original
+        get { return GetStat(Stat.Speed); } 
     }
 
-    public int MaxHP
-    {
-        get { return Mathf.FloorToInt((Base.Hp * Level) / 100) + Level + 10; } //formula del juego original
-    }
+    public int MaxHP { get; private set;}
 
     public DamageDetails TakeDamage(Move move, Pokemon attacker)
     {
@@ -145,6 +221,11 @@ public class Pokemon
     {
         int r = Random.Range(0, Moves.Count);  
         return Moves[r]; 
+    }
+
+    public void OnBattleOver()
+    {
+        ResetStateBoosts();
     }
 
     public void Health(int _HP)
