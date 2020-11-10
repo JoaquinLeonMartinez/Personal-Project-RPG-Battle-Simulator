@@ -73,11 +73,18 @@ public class MoveEffects
     //declaramos la clase StatBoost como apoyo a esta, ya que podriamos hacer un diccionario en lugar de una lista, pero el diccionario no se muestra en el editor de unity :(
     [SerializeField] List<StatBoost> boosts;
 
+    [SerializeField] ConditionID status;
+
 
     public List<StatBoost> Boosts
     {
         get{ return boosts;}
     }
+
+    public ConditionID Status 
+    {
+        get { return status; }
+    } 
 
 }
 [System.Serializable]

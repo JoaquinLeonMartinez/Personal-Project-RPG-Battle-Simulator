@@ -307,6 +307,22 @@ public class BattleSystem : MonoBehaviour
             yield return new WaitForSeconds(2f);
             yield return CheckForBattleOver(targetUnit);
         }
+
+        sourceUnit.Pokemon.OnAfterTurn();
+        yield return ShowStatusChanges(sourceUnit.Pokemon);
+        yield return sourceUnit.Hud.UpdateHP();//actualizamos el hud por si se reduce la HP del pokemon
+
+        //comprobamos si muere por el estado alterado:
+
+        if (sourceUnit.Pokemon.CurrentHP <= 0) 
+        {
+            yield return dialogBox.TypeDialog($"{sourceUnit.Pokemon.Base.name} fainted");
+
+            sourceUnit.PlayFaintAnimation();
+
+            yield return new WaitForSeconds(2f);
+            yield return CheckForBattleOver(sourceUnit);
+        }
     }
 
     IEnumerator RunMoveEffects(Move move, Pokemon source, Pokemon target)
@@ -322,6 +338,15 @@ public class BattleSystem : MonoBehaviour
             {
                 target.ApplyBoosts(effects.Boosts);
             }
+
+            //Comprobamos si hay cambios de estado:
+            if (effects.Status != ConditionID.none)
+            {
+                //TODO: Estamos suponiendo que el target del status es el enemigo y no uno mismo
+                target.SetStatus(effects.Status);
+            }
+
+
             //Mostramos en el dialogo las bajadas y subidas de stats de ambos pokemons
             yield return ShowStatusChanges(source);
             yield return ShowStatusChanges(target);

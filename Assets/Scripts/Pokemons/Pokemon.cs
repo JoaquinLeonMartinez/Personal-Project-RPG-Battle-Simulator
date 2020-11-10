@@ -28,7 +28,11 @@ public class Pokemon
 
     public Dictionary<Stat, int> StatBoosts { get; private set; } //el integer valdra entre -6 y 6 debido a que es lo maximo que se puede boostear una caracteristica
 
+    public Condition Status { get; private set; }
+
     public Queue<string> StatusChanges { get; private set; }
+
+    public bool HpChanged { get; set; }
 
     float criticalHitRate = 6.25f;
 
@@ -55,6 +59,12 @@ public class Pokemon
         this.CurrentHP = MaxHP;
         ResetStateBoosts();
 
+    }
+
+    public void SetStatus(ConditionID conditionId)
+    {
+        Status = ConditionsDB.Conditions[conditionId];
+        StatusChanges.Enqueue($"{Base.Name} {Status.StartMessage}");
     }
 
     void ResetStateBoosts()
@@ -127,30 +137,6 @@ public class Pokemon
         }
     }
 
-    public Pokemon(PokemonBase _pBase, int _level)
-    {
-        //this.Base = _pBase; //en principio el constructor ya no se utilizara más, por ello crearemos un metodo Init() que hara lo mismo pero se le llamara desde el inspector
-        //this.Level = _level;
-        /*this.CurrentHP = MaxHP; //no debe ser Hp porque entonces tendria la HP base del pokemon y no la real
-
-        //Por defecto el pokemon tendra los ultimos movimientos que aprende por nivel
-
-        Moves = new List<Move>();
-        foreach (var move in Base.LearnableMoves)
-        {
-            if (move.Level <= Level)
-            {
-                Moves.Add(new Move(move.Base));
-            }
-            if (Moves.Count >= 4)
-            {
-                break; //Comprobar si con esto pilla los 4 primeros o los ultimos (todo seria ordenar learnable moves de mayor a menor)
-            }
-        }
-        */
-    }
-
-
     public int Attack
     {
         get { return GetStat(Stat.Attack); } 
@@ -208,13 +194,13 @@ public class Pokemon
         float d = ((a * move.Base.Power * (attack / defense)) / 50f) + 2;
         int damage = Mathf.FloorToInt(d * modifiers);
 
-        this.CurrentHP -= damage;
-        if (CurrentHP <= 0)
-        {
-            CurrentHP = 0;
-            damageDetails.Fainted = true;
-        }
+        UpdateHP(damage);
         return damageDetails;
+    }
+
+    public void OnAfterTurn()
+    {
+        Status?.OnAfterTurn?.Invoke(this); //.? indica que solo se llamara a OnAfterTurn cuando no sea null
     }
 
     public Move GetRandomMove()
@@ -226,6 +212,12 @@ public class Pokemon
     public void OnBattleOver()
     {
         ResetStateBoosts();
+    }
+
+    public void UpdateHP(int damage)
+    {
+        CurrentHP = Mathf.Clamp(CurrentHP - damage, 0, MaxHP);
+        HpChanged = true;
     }
 
     public void Health(int _HP)
@@ -241,11 +233,8 @@ public class Pokemon
 public class DamageDetails
 {
     public bool Fainted { get; set; }
-
     public float Critical { get; set; }
-
     public float Effectiveness { get; set; }
-
 }
 
 
