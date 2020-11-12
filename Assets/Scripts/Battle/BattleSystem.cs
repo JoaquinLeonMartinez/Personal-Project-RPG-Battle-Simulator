@@ -242,8 +242,6 @@ public class BattleSystem : MonoBehaviour
             // El futuro -->ChooseFirstTurn();
             ActionSelection();
         }
-        
-
     }
 
     void OpenParyScreen()
@@ -279,78 +277,113 @@ public class BattleSystem : MonoBehaviour
 
     IEnumerator RunMove(BattleUnit sourceUnit, BattleUnit targetUnit, Move move)
     {
+        bool canRunMove = sourceUnit.Pokemon.OnBeforeMove();
+        if (!canRunMove)
+        {
+            yield return ShowStatusChanges(sourceUnit.Pokemon);
+            yield return sourceUnit.Hud.UpdateHP();
+            yield break;
+        }
+        yield return ShowStatusChanges(sourceUnit.Pokemon);
+
         move.PP--; //A la hora de seleccionar el movimiento hay que poner la condicion de que no se pueda seleccionar si no le quedan PPs (aqui ya es demasiado tarde proque ya esta seleccionado)
         yield return dialogBox.TypeDialog($"{sourceUnit.Pokemon.Base.Name} used { move.Base.Name}");
 
-        sourceUnit.PlayAttackAnimation();
-        yield return new WaitForSeconds(1f);
-
-        targetUnit.PlayHitAnimation();
-
-        if (move.Base.Category == MoveCategory.Status)
+        if (CheckIfMoveHits(move, sourceUnit.Pokemon, targetUnit.Pokemon))
         {
-            yield return RunMoveEffects(move, sourceUnit.Pokemon, targetUnit.Pokemon);
+            sourceUnit.PlayAttackAnimation();
+            yield return new WaitForSeconds(1f);
+
+            targetUnit.PlayHitAnimation();
+
+            if (move.Base.Category == MoveCategory.Status)
+            {
+                yield return RunMoveEffects(move.Base.Effects, sourceUnit.Pokemon, targetUnit.Pokemon, move.Base.Target);
+            }
+            else
+            {
+                var damageDetails = targetUnit.Pokemon.TakeDamage(move, sourceUnit.Pokemon);
+                yield return targetUnit.Hud.UpdateHP();
+                yield return ShowDamageDetails(damageDetails);
+            }
+
+            if (move.Base.SecondaryEffects != null && move.Base.SecondaryEffects.Count > 0 && targetUnit.Pokemon.CurrentHP > 0)
+            {
+                foreach (var secondary in move.Base.SecondaryEffects)
+                {
+                    var rnd = UnityEngine.Random.Range(1,101);
+                    if (rnd <= secondary.Chance)
+                    {
+                        yield return RunMoveEffects(secondary, sourceUnit.Pokemon, targetUnit.Pokemon, secondary.Target);
+                    }
+
+                }
+            }
+
+            if (targetUnit.Pokemon.CurrentHP <= 0) //si el target muere
+            {
+                yield return dialogBox.TypeDialog($"{targetUnit.Pokemon.Base.name} fainted");
+
+                targetUnit.PlayFaintAnimation();
+
+                yield return new WaitForSeconds(2f);
+                yield return CheckForBattleOver(targetUnit);
+            }
+
+            sourceUnit.Pokemon.OnAfterTurn();
+            yield return ShowStatusChanges(sourceUnit.Pokemon);
+            yield return sourceUnit.Hud.UpdateHP();//actualizamos el hud por si se reduce la HP del pokemon
+
+            //comprobamos si muere por el estado alterado:
+            if (sourceUnit.Pokemon.CurrentHP <= 0)
+            {
+                yield return dialogBox.TypeDialog($"{sourceUnit.Pokemon.Base.name} fainted");
+
+                sourceUnit.PlayFaintAnimation();
+
+                yield return new WaitForSeconds(2f);
+                yield return CheckForBattleOver(sourceUnit);
+            }
         }
         else
         {
-            var damageDetails = targetUnit.Pokemon.TakeDamage(move, sourceUnit.Pokemon);
-            yield return targetUnit.Hud.UpdateHP();
-            yield return ShowDamageDetails(damageDetails);
-        }
-
-        if (targetUnit.Pokemon.CurrentHP <= 0) //si el target muere
-        {
-            yield return dialogBox.TypeDialog($"{targetUnit.Pokemon.Base.name} fainted");
-
-            targetUnit.PlayFaintAnimation();
-
-            yield return new WaitForSeconds(2f);
-            yield return CheckForBattleOver(targetUnit);
-        }
-
-        sourceUnit.Pokemon.OnAfterTurn();
-        yield return ShowStatusChanges(sourceUnit.Pokemon);
-        yield return sourceUnit.Hud.UpdateHP();//actualizamos el hud por si se reduce la HP del pokemon
-
-        //comprobamos si muere por el estado alterado:
-
-        if (sourceUnit.Pokemon.CurrentHP <= 0) 
-        {
-            yield return dialogBox.TypeDialog($"{sourceUnit.Pokemon.Base.name} fainted");
-
-            sourceUnit.PlayFaintAnimation();
-
-            yield return new WaitForSeconds(2f);
-            yield return CheckForBattleOver(sourceUnit);
+            yield return dialogBox.TypeDialog($"{sourceUnit.Pokemon.Base.name}'s attack missed");
         }
     }
 
-    IEnumerator RunMoveEffects(Move move, Pokemon source, Pokemon target)
+    IEnumerator RunMoveEffects(MoveEffects effects, Pokemon source, Pokemon target, MoveTarget moveTarget)
     {
-        var effects = move.Base.Effects;
+        //Boosts
         if (effects.Boosts != null) //de momento solo contemplamos los ataques de estado que implican boosts
         {
-            if (move.Base.Target == MoveTarget.Self)
+            if (moveTarget == MoveTarget.Self)
             {
                 source.ApplyBoosts(effects.Boosts);
             }
-            else if (move.Base.Target == MoveTarget.Foe)
+            else if (moveTarget == MoveTarget.Foe)
             {
                 target.ApplyBoosts(effects.Boosts);
             }
-
-            //Comprobamos si hay cambios de estado:
-            if (effects.Status != ConditionID.none)
-            {
-                //TODO: Estamos suponiendo que el target del status es el enemigo y no uno mismo
-                target.SetStatus(effects.Status);
-            }
-
-
-            //Mostramos en el dialogo las bajadas y subidas de stats de ambos pokemons
-            yield return ShowStatusChanges(source);
-            yield return ShowStatusChanges(target);
         }
+
+        //Status conditions
+        if (effects.Status != ConditionID.none)
+        {
+            //TODO: Estamos suponiendo que el target del status es el enemigo y no uno mismo
+            target.SetStatus(effects.Status);
+        }
+
+        //Volatile Status conditions
+        if (effects.VolatileStatus != ConditionID.none)
+        {
+            //TODO: Estamos suponiendo que el target del status es el enemigo y no uno mismo
+            target.SetVolatileStatus(effects.VolatileStatus);
+        }
+
+        //Mostramos en el dialogo las bajadas y subidas de stats de ambos pokemons
+        yield return ShowStatusChanges(source);
+        yield return ShowStatusChanges(target);
+        
     }
 
     IEnumerator CheckForBattleOver(BattleUnit faintedUnit) //simplificar este metodo en la medida de lo posible!!
@@ -390,6 +423,40 @@ public class BattleSystem : MonoBehaviour
                 BattleOver(true);
             }
         }
+    }
+
+    //en base a la precision indica si golpear el movimiento
+    bool CheckIfMoveHits(Move move, Pokemon source, Pokemon target)
+    {
+        if (move.Base.AlwaysHits)
+        {
+            return true;
+        }
+        float moveAccurarcy = move.Base.Accurarcy;
+        int accurarcy = source.StatBoosts[Stat.Accurarcy];
+        int evasion = target.StatBoosts[Stat.Evasion];
+
+        var boostValues = new float[] { 1f, 4f/3f, 5f/3f, 2f, 7f/3f, 8f/3f, 3f };
+
+        if (accurarcy >= 0)
+        {
+            moveAccurarcy *= boostValues[accurarcy];
+        }
+        else
+        {
+            moveAccurarcy /= boostValues[accurarcy];
+        }
+
+        if (evasion >= 0)
+        {
+            moveAccurarcy /= boostValues[evasion];
+        }
+        else
+        {
+            moveAccurarcy *= boostValues[evasion];
+        }
+
+        return UnityEngine.Random.Range(1, 101) <= moveAccurarcy;
     }
 
     IEnumerator EnemyMove()

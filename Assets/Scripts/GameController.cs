@@ -16,6 +16,11 @@ public class GameController : MonoBehaviour
      
     GameState state;
 
+    private void Awake()
+    {
+        ConditionsDB.Init();
+    }
+
     private void Start()
     {
         playerController.OnBattleStart += StartBattle; //nos subscrivimos al evento e indicamos que accion realizaremos 

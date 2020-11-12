@@ -30,11 +30,19 @@ public class Pokemon
 
     public Condition Status { get; private set; }
 
+    public int StatusTime { get; set; } //numero de turnos que un pokemon tendra un estado alterado, por ejemplo dormido
+
+    public Condition VolatileStatus { get; private set; }
+
+    public int VolatileStatusTime { get; set; } //numero de turnos que un pokemon tendra un estado alterado, por ejemplo dormido
+
     public Queue<string> StatusChanges { get; private set; }
 
     public bool HpChanged { get; set; }
 
     float criticalHitRate = 6.25f;
+
+    public event System.Action OnStatusChanged;
 
     public void Init()
     {
@@ -58,14 +66,43 @@ public class Pokemon
         CalculateStats();
         this.CurrentHP = MaxHP;
         ResetStateBoosts();
+        Status = null;
+        VolatileStatus = null;
 
     }
 
     public void SetStatus(ConditionID conditionId)
     {
+        if (Status != null) return; //si ya tiene un estado alterado no puede poner otro
+        //TODO: Aqui habria que añadir un mensaje no?
+
         Status = ConditionsDB.Conditions[conditionId];
+        Status?.OnStart?.Invoke(this);
         StatusChanges.Enqueue($"{Base.Name} {Status.StartMessage}");
+        OnStatusChanged?.Invoke();
     }
+
+    public void CureStatus()
+    {
+        Status = null;
+        OnStatusChanged?.Invoke();
+    }
+
+    public void SetVolatileStatus(ConditionID conditionId)
+    {
+        if (VolatileStatus != null) return; //si ya tiene un estado alterado no puede poner otro
+        //TODO: Aqui habria que añadir un mensaje no?
+
+        VolatileStatus = ConditionsDB.Conditions[conditionId];
+        VolatileStatus?.OnStart?.Invoke(this);
+        StatusChanges.Enqueue($"{Base.Name} {VolatileStatus.StartMessage}");
+    }
+
+    public void CureVolatileStatus()
+    {
+        VolatileStatus = null;
+    }
+
 
     void ResetStateBoosts()
     {
@@ -76,7 +113,8 @@ public class Pokemon
             {Stat.SpAttack, 0},
             {Stat.SpDefense, 0},
             {Stat.Speed, 0},
-            {Stat.Accurarcy, 0}
+            {Stat.Accurarcy, 0},
+            {Stat.Evasion, 0}
         };
     }
 
@@ -198,9 +236,32 @@ public class Pokemon
         return damageDetails;
     }
 
+    public bool OnBeforeMove()
+    {
+        bool canPerformMove = true;
+
+        if (Status?.OnBeforeMove != null)
+        {
+            if (!Status.OnBeforeMove(this))
+            {
+                canPerformMove = false;
+            }
+        }
+
+        if (VolatileStatus?.OnBeforeMove != null)
+        {
+            if (!VolatileStatus.OnBeforeMove(this))
+            {
+                canPerformMove = false;
+            }
+        }
+
+        return canPerformMove;
+    }
     public void OnAfterTurn()
     {
         Status?.OnAfterTurn?.Invoke(this); //.? indica que solo se llamara a OnAfterTurn cuando no sea null
+        VolatileStatus?.OnAfterTurn?.Invoke(this);
     }
 
     public Move GetRandomMove()
@@ -211,6 +272,7 @@ public class Pokemon
 
     public void OnBattleOver()
     {
+        VolatileStatus = null;
         ResetStateBoosts();
     }
 
