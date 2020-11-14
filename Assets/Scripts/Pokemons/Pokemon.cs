@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 [System.Serializable]
 public class Pokemon
@@ -23,6 +24,8 @@ public class Pokemon
     public int CurrentHP { get; set; }
 
     public List<Move> Moves { get; set; }
+
+    public Move CurrentMove { get; set; }
 
     public Dictionary<Stat, int> Stats { get; private set; }
 
@@ -171,7 +174,7 @@ public class Pokemon
                 StatusChanges.Enqueue($"{Base.Name}`s {stat} fell!");
             }
 
-            Debug.Log($"{stat} has been boosted to {StatBoosts[stat]}");
+            //Debug.Log($"{stat} has been boosted to {StatBoosts[stat]}");
         }
     }
 
@@ -266,8 +269,10 @@ public class Pokemon
 
     public Move GetRandomMove()
     {
-        int r = Random.Range(0, Moves.Count);  
-        return Moves[r]; 
+        var movesWithPP = Moves.Where(x => x.PP > 0).ToList();
+
+        int r = Random.Range(0, movesWithPP.Count);  
+        return movesWithPP[r]; 
     }
 
     public void OnBattleOver()
