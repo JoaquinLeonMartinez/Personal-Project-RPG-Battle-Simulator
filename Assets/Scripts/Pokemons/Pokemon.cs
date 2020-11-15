@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
+public enum EffectResult { Succes, Inmune, AlreadyOne};
+
 [System.Serializable]
 public class Pokemon
 {
@@ -75,15 +77,32 @@ public class Pokemon
 
     }
 
-    public void SetStatus(ConditionID conditionId)
+    public EffectResult SetStatus(ConditionID conditionId)
     {
-        if (Status != null) return; //si ya tiene un estado alterado no puede poner otro
-        //TODO: Aqui habria que añadir un mensaje no?
+        //Check current status
+        if (Status != null) return EffectResult.AlreadyOne;
+
+        //Check invulnerability
+        //Poison
+        if (conditionId == ConditionID.psn && (Base.Type1 == PokemonType.Poison || Base.Type2 == PokemonType.Poison))
+        {
+            return EffectResult.Inmune; //TODO: En este caso poner un mensaje
+        }
+
+        //Burn
+        if (conditionId == ConditionID.brn && (Base.Type1 == PokemonType.Fire || Base.Type2 == PokemonType.Fire))
+        {
+            return EffectResult.Inmune; //TODO: En este caso poner un mensaje
+        }
+
+        //TODO: En el futuro quiza habria que add la resistencia de los tipo planta a ciertos ataques(drenadoras, somnifero, etc)
 
         Status = ConditionsDB.Conditions[conditionId];
         Status?.OnStart?.Invoke(this);
         StatusChanges.Enqueue($"{Base.Name} {Status.StartMessage}");
         OnStatusChanged?.Invoke();
+
+        return EffectResult.Succes;
     }
 
     public void CureStatus()
@@ -145,7 +164,7 @@ public class Pokemon
     {
         int statVal = Stats[stat];
 
-        //TODO: Apply boosts and drops
+        //Check boosts
         int boost = StatBoosts[stat];
         var boostValues = new float[] { 1f, 1.5f, 2f, 2.5f, 3f, 3.5f, 4f};
 
@@ -158,6 +177,17 @@ public class Pokemon
             statVal = Mathf.FloorToInt(statVal / boostValues[-boost]);
         }
 
+        //Check status
+        //if is burn attack / 2
+        if (stat == Stat.Attack && Status != null && Status.Id == ConditionID.brn)
+        {
+            statVal /= 2;
+        }
+        //if is paralyzed speed /4
+        if (stat == Stat.Speed && Status != null && Status.Id == ConditionID.par)
+        {
+            statVal /= 4;
+        }
 
         return statVal;
     }

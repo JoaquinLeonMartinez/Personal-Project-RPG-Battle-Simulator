@@ -472,7 +472,16 @@ public class BattleSystem : MonoBehaviour
         if (effects.Status != ConditionID.none)
         {
             //TODO: Estamos suponiendo que el target del status es el enemigo y no uno mismo
-            target.SetStatus(effects.Status);
+            EffectResult result = target.SetStatus(effects.Status);
+
+            if (result == EffectResult.AlreadyOne)
+            {
+                yield return dialogBox.TypeDialog($"{source.CurrentMove.Base.Name} had no effect!");
+            }
+            else if (result == EffectResult.Inmune)
+            {
+                yield return dialogBox.TypeDialog($"{target.Base.Name} it's inmune!");
+            }
         }
 
         //Volatile Status conditions
