@@ -86,13 +86,13 @@ public class Pokemon
         //Poison
         if (conditionId == ConditionID.psn && (Base.Type1 == PokemonType.Poison || Base.Type2 == PokemonType.Poison))
         {
-            return EffectResult.Inmune; //TODO: En este caso poner un mensaje
+            return EffectResult.Inmune; 
         }
 
         //Burn
         if (conditionId == ConditionID.brn && (Base.Type1 == PokemonType.Fire || Base.Type2 == PokemonType.Fire))
         {
-            return EffectResult.Inmune; //TODO: En este caso poner un mensaje
+            return EffectResult.Inmune; 
         }
 
         //TODO: En el futuro quiza habria que add la resistencia de los tipo planta a ciertos ataques(drenadoras, somnifero, etc)

@@ -317,18 +317,20 @@ public class BattleSystem : MonoBehaviour
 
             //First Turn
             yield return RunMove(firstUnit, secondUnit, firstUnit.Pokemon.CurrentMove);
-            yield return RunAfterTurn(firstUnit);
+            //Aqui en un futuro ira un "afterMove" para el tema de recoils y demas
+            //yield return RunAfterTurn(firstUnit);
             if (state == BattleState.BattleOver)
             {
                 yield break;
             }
 
-            //Antes de ir con el segundo turno, tenemos que chequear que el pokemon del segundo turno no haya muerto en el primero:
+            //Check if the second pokemon is still alive
             if (secondPokemon.CurrentHP > 0)
             {
                 //Second Turn
                 yield return RunMove(secondUnit, firstUnit, secondUnit.Pokemon.CurrentMove);
-                yield return RunAfterTurn(secondUnit);
+                //Aqui en un futuro ira un "afterMove" para el tema de recoils y demas
+                //yield return RunAfterTurn(secondUnit);
                 if (state == BattleState.BattleOver)
                 {
                     yield break;
@@ -347,16 +349,27 @@ public class BattleSystem : MonoBehaviour
             //Enemy Turn
             enemyUnit.Pokemon.CurrentMove = enemyUnit.Pokemon.GetRandomMove();
             yield return RunMove(enemyUnit, playerUnit, enemyUnit.Pokemon.CurrentMove);
-            yield return RunAfterTurn(enemyUnit);
+            //Aqui en un futuro ira un "afterMove" para el tema de recoils y demas
+            //yield return RunAfterTurn(enemyUnit);
             if (state == BattleState.BattleOver)
             {
                 yield break;
             }
         }
 
+        //Check AfterTurn (Status Conditions, Weather, Fields, etc)
+        //Check if they are still alive
+        //check speed (to know the order)
+        bool playerGoesFirstAfter = playerUnit.Pokemon.Speed >= enemyUnit.Pokemon.Speed;
+        var firstUnitAfter = (playerGoesFirstAfter) ? playerUnit : enemyUnit;
+        var secondUnitAfter = (playerGoesFirstAfter) ? enemyUnit : playerUnit;
+        //No hace falta comprobar si estan vivos porque estamos cogiendo el pokemon directamente del slot
+        yield return RunAfterTurn(firstUnitAfter);
+        yield return RunAfterTurn(secondUnitAfter);
+
         if (state != BattleState.BattleOver)
         {
-            ActionSelection(); //TODO: SOSPECHOSO: El problema es que esta llegando aqui sin esperar a que selecciones el nuevo pokemon (comprobar si pasa solo cuando te matan atacando tu el ultimo o es siempre)
+            ActionSelection();
         }
     }
     /*
