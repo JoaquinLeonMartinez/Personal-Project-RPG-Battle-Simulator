@@ -80,6 +80,8 @@
     <Compile Include="Assets\Scripts\Pokemons\Pokemon.cs" />
     <Compile Include="Assets\Scripts\Pokemons\PokemonBase.cs" />
     <Compile Include="Assets\Scripts\Pokemons\PokemonParty.cs" />
+    <Compile Include="Assets\Scripts\Utils\MyDebug.cs" />
+    <Compile Include="Assets\Scripts\Utils\Settings.cs" />
     <Reference Include="UnityEngine">
       <HintPath>C:/Program Files/Unity/Hub/Editor/2019.4.9f1/Editor/Data/Managed/UnityEngine/UnityEngine.dll</HintPath>
     </Reference>

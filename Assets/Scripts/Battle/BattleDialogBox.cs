@@ -5,7 +5,6 @@ using UnityEngine.UI;
 
 public class BattleDialogBox : MonoBehaviour
 {
-    [SerializeField] int lettersPerSecond; //velocidad a la que se pintara el dialogo, esto en un futuro se podra modificar desde el menu de opciones
     [SerializeField] Color highlightedColor;
 
     [SerializeField] Text dialogText;
@@ -32,10 +31,10 @@ public class BattleDialogBox : MonoBehaviour
         foreach(var letter in dialog.ToCharArray())
         {
             dialogText.text += letter;
-            yield return new WaitForSeconds(1f/lettersPerSecond);
+            yield return new WaitForSeconds(1f/Settings.lettersPerSecond);
         }
 
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(Settings.pauseDuration);
     }
 
     public void EnableDialogText(bool enabled)

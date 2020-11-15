@@ -9,22 +9,38 @@ public enum BattleAction { Move, SwitchPokemon, UseItem, Run }
 
 public class BattleSystem : MonoBehaviour
 {
+    //Slot de player
     [SerializeField] BattleUnit playerUnit;
+    //Slot del enemigo
     [SerializeField] BattleUnit enemyUnit;
+    //Caja de dialogo (esto gestiona todo el tema de dialogos)
     [SerializeField] BattleDialogBox dialogBox;
+    //Pantalla de cambiar de pokemon
     [SerializeField] PartyScreen partyScreen;
-
+    //Evento con el que indicaremos si la batalla ha terminado, actualmente se le pasa un parámetro que no estamos utilizando. En un futuro se utilizaa para indicar si gana o pierde
     public event Action<bool> OnBattleOver; //true si ganas, false si pierdes
-
+    // Estado de en el que se encuentra la batalla
     BattleState state;
+    //Estado previo, actualmente solo se utiliza para el cambio de pokemon, con esto difreneciamos si es un cambio voluntario o por muerte d eun pokemon
     BattleState? prevState;
+    //iterador para elegir la accion que quieres realizar (atacar, mochila, cambiar de pokemon, etc)
     int currentAction;
+    //iterador para seleccionar el movimiento
     int currentMove;
+    //iterador de la pantalla de seleccion de pokemon cuando cambias de pokemon
     int currentMember;
-
+    //Equipo del jugador
     PokemonParty playerParty;
+    //Equipo del rival
     PokemonParty enemyParty;
 
+    /*
+     * Estos metodos se encargan de iniciar el battle system
+     */
+    #region InitRegion
+    /*
+     * Primer metodo que es llamado al iniciar la clase, asigna los equipos al jugador y al enemigo, resetea los iteradores y llama al setup para que haga el resto
+     */
     public void StartBattle(PokemonParty playerParty, PokemonParty enemyParty)
     {
         this.playerParty = playerParty;
@@ -34,7 +50,29 @@ public class BattleSystem : MonoBehaviour
         currentMember = 0;
         StartCoroutine(SetupBattle());
     }
+    /*
+     * Gestiona quien sera el primer pokemon de cada jugador y actualiza la caja de dialogo
+     */
+    public IEnumerator SetupBattle()
+    {
+        playerUnit.SetUp(playerParty.GetHealthyPokemon());
+        enemyUnit.SetUp(enemyParty.GetHealthyPokemon());
+        partyScreen.Init();
+        dialogBox.SetMoveNames(playerUnit.Pokemon.Moves); //siempre seran los del player
+        //Si un string empieza con un $ puedes referenciar otros valoresd dentro del propio string
+        //Si desde una corrutina se quiere iniciar otra, basta con hacer un yield
+        yield return dialogBox.TypeDialog($"A wild {enemyUnit.Pokemon.Base.Name} appeared.");
 
+        ActionSelection();
+    }
+    #endregion
+    /*
+     * En esta parte del codigo agrupamos las funciones que se encargan de gestionar el movimiento en los menus y el update de la clase, que indica cual de los handle estamos utilizando en funcion del estado en el que nos encontramos
+     */
+    #region HandleSection 
+    /*
+     * Update (falso) de la clase, se llama cada frame e indica que handle se debe seguir (es invocado por el Game controller)
+     */
     public void HandleUpdate()
     {
         if (state == BattleState.ActionSelection)
@@ -50,26 +88,12 @@ public class BattleSystem : MonoBehaviour
             HandlePartyScreenSelection();
         }
 
-        Debug.Log("State = " + state);
+        //Debug.Log("State = " + state);
     }
-
-    public IEnumerator SetupBattle()
-    {
-        playerUnit.SetUp(playerParty.GetHealthyPokemon()); 
-        enemyUnit.SetUp(enemyParty.GetHealthyPokemon());
-
-        partyScreen.Init();
-
-        dialogBox.SetMoveNames(playerUnit.Pokemon.Moves); //siempre seran los del player
-
-        //Si un string empieza con un $ puedes referenciar otros valoresd dentro del propio string
-        //Si desde una corrutina se quiere iniciar otra, basta con hacer un yield
-        yield return dialogBox.TypeDialog($"A wild {enemyUnit.Pokemon.Base.Name} appeared.");
-
-        ActionSelection();
-    }
-
-    void HandleActionSelection() 
+    /*
+     * Se encarga de la gestion de las acctiones disponibles para el jugador
+     */
+    void HandleActionSelection()
     {
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
@@ -85,23 +109,20 @@ public class BattleSystem : MonoBehaviour
         }
         else if (Input.GetKeyDown(KeyCode.UpArrow))
         {
-            currentAction -= 2;     
+            currentAction -= 2;
         }
 
-        currentAction = Mathf.Clamp(currentAction,0,3);
-
-
+        currentAction = Mathf.Clamp(currentAction, 0, 3);
         dialogBox.UpdateActionSelection(currentAction);
 
         if (Input.GetKeyDown(KeyCode.Z))
         {
-
             if (currentAction == 0)
             {
                 //Fight
                 MoveSelection();
             }
-            else if(currentAction == 1)
+            else if (currentAction == 1)
             {
                 //Bag
             }
@@ -115,13 +136,13 @@ public class BattleSystem : MonoBehaviour
             {
                 //Run
             }
-
         }
     }
-
+    /*
+     * Se encarga de la gestion de la pantalla de seleccionar otro pokemon para salir a la batalla
+     */
     void HandlePartyScreenSelection()
     {
-
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
             currentMember++;
@@ -140,12 +161,11 @@ public class BattleSystem : MonoBehaviour
         }
 
         currentMember = Mathf.Clamp(currentMember, 0, playerParty.Pokemons.Count - 1);
-
         partyScreen.UpdateMemberSelection(currentMember);
 
         if (Input.GetKeyDown(KeyCode.Z))
         {
-            //sale a combatir el pokemon que sea
+            //Sale a combatir el pokemon seleccionado
             var selectedMember = playerParty.Pokemons[currentMember];
             if (selectedMember.CurrentHP <= 0)
             {
@@ -165,7 +185,7 @@ public class BattleSystem : MonoBehaviour
                 prevState = null;
                 StartCoroutine(RunTurns(BattleAction.SwitchPokemon));
             }
-            else //En este caso significa que ha muerto
+            else //En este caso significa que ha muerto el anterior
             {
                 state = BattleState.Busy;
                 StartCoroutine(SwitchPokemon(selectedMember));
@@ -173,7 +193,7 @@ public class BattleSystem : MonoBehaviour
         }
         else if (Input.GetKeyDown(KeyCode.X))
         {
-            //vuelve hacia atras (solo si tu pokemon esta vivo)
+            //Vuelve hacia atras (solo si tu pokemon esta vivo)
             if (playerUnit.Pokemon.CurrentHP > 0)
             {
                 partyScreen.gameObject.SetActive(false);
@@ -182,7 +202,9 @@ public class BattleSystem : MonoBehaviour
         }
 
     }
-
+    /*
+     * Se encarga de gestionar la seleccion del movimiento
+     */
     void HandleMoveSelection()
     {
         if (Input.GetKeyDown(KeyCode.RightArrow))
@@ -203,7 +225,6 @@ public class BattleSystem : MonoBehaviour
         }
 
         currentMove = Mathf.Clamp(currentMove, 0, playerUnit.Pokemon.Moves.Count - 1);
-
         dialogBox.UpdateMoveSelection(currentMove, playerUnit.Pokemon.Moves[currentMove]);
 
         if (Input.GetKeyDown(KeyCode.Z))
@@ -222,32 +243,24 @@ public class BattleSystem : MonoBehaviour
             ActionSelection();
         }
     }
+    #endregion
 
+    /*
+     * Metodos que se encargan de la gestion del menu
+     */
+    #region Menu
+    /*
+     * Actualiza el estado del juego y la UI para entrar al estado de seleccionar accion
+     */
     void ActionSelection()
     {
         state = BattleState.ActionSelection;
         dialogBox.SetDialog("Choose an action");
         dialogBox.EnableActionSelector(true); ;
     }
-
-    IEnumerator SwitchPokemon(Pokemon newPokemon)
-    {
-        if (playerUnit.Pokemon.CurrentHP > 0)
-        {
-            yield return dialogBox.TypeDialog($"Come back {playerUnit.Pokemon.Base.Name}");
-            playerUnit.PlayFaintAnimation(); //TODO. Esto es de momento hasta que haya una animacion de cambiar
-            yield return new WaitForSeconds(2f);
-        }
-
-        playerUnit.SetUp(newPokemon);
-        dialogBox.SetMoveNames(newPokemon.Moves);
-        yield return dialogBox.TypeDialog($"Go {newPokemon.Base.Name}.");
-
-        //TODO: Cambiamos el orden del equipo (Para esto deberiamos poder conservar el orden del equipo original, como de momento es una movida pasamos del tema)
-
-        state = BattleState.RunningTurn;
-    }
-
+    /*
+     * Actualiza el estado del juego y la UI para entrar al estado de seleccinar un nuevo pokemon
+     */
     void OpenParyScreen()
     {
         state = BattleState.PartyScreen;
@@ -255,103 +268,24 @@ public class BattleSystem : MonoBehaviour
         dialogBox.EnableActionSelector(false);
         partyScreen.gameObject.SetActive(true);
     }
-
+    /*
+     * Actualiza el estado del juego y la UI para entrar al estado de seleccionar movimiento
+     */
     void MoveSelection()
     {
         state = BattleState.MoveSelection;
         dialogBox.EnableActionSelector(false);
         dialogBox.EnableDialogText(false);
-        dialogBox.EnableMoveSelector(true);
-        
+        dialogBox.EnableMoveSelector(true);      
     }
-
-    IEnumerator RunMove(BattleUnit sourceUnit, BattleUnit targetUnit, Move move)
-    {
-        bool canRunMove = sourceUnit.Pokemon.OnBeforeMove();
-        if (!canRunMove)
-        {
-            yield return ShowStatusChanges(sourceUnit.Pokemon);
-            yield return sourceUnit.Hud.UpdateHP();
-            yield break;
-        }
-        yield return ShowStatusChanges(sourceUnit.Pokemon);
-
-        move.PP--;
-        yield return dialogBox.TypeDialog($"{sourceUnit.Pokemon.Base.Name} used { move.Base.Name}");
-
-        if (CheckIfMoveHits(move, sourceUnit.Pokemon, targetUnit.Pokemon))
-        {
-            sourceUnit.PlayAttackAnimation();
-            yield return new WaitForSeconds(1f);
-
-            targetUnit.PlayHitAnimation();
-
-            if (move.Base.Category == MoveCategory.Status)
-            {
-                yield return RunMoveEffects(move.Base.Effects, sourceUnit.Pokemon, targetUnit.Pokemon, move.Base.Target);
-            }
-            else
-            {
-                var damageDetails = targetUnit.Pokemon.TakeDamage(move, sourceUnit.Pokemon);
-                yield return targetUnit.Hud.UpdateHP();
-                yield return ShowDamageDetails(damageDetails);
-            }
-
-            if (move.Base.SecondaryEffects != null && move.Base.SecondaryEffects.Count > 0 && targetUnit.Pokemon.CurrentHP > 0)
-            {
-                foreach (var secondary in move.Base.SecondaryEffects)
-                {
-                    var rnd = UnityEngine.Random.Range(1,101);
-                    if (rnd <= secondary.Chance)
-                    {
-                        yield return RunMoveEffects(secondary, sourceUnit.Pokemon, targetUnit.Pokemon, secondary.Target);
-                    }
-
-                }
-            }
-
-            if (targetUnit.Pokemon.CurrentHP <= 0) //si el target muere
-            {
-                yield return dialogBox.TypeDialog($"{targetUnit.Pokemon.Base.name} fainted");
-
-                targetUnit.PlayFaintAnimation();
-
-                yield return new WaitForSeconds(2f);
-                yield return CheckForBattleOver(targetUnit);
-            }
-
-        }
-        else
-        {
-            yield return dialogBox.TypeDialog($"{sourceUnit.Pokemon.Base.name}'s attack missed");
-        }
-    }
-
-    IEnumerator RunAfterTurn(BattleUnit sourceUnit)
-    {
-        if (state == BattleState.BattleOver)
-        {
-            yield break;
-        }
-        //Con esto esperamos a que el efecto secundario del ataque no haga efecto hasta que (en caso de haber matado al enemigo) salga el nuevo pokemon (cosa que en los juegos actuales no es asi creo recordar)
-        yield return new WaitUntil(() => state == BattleState.RunningTurn);
-
-        sourceUnit.Pokemon.OnAfterTurn();
-        yield return ShowStatusChanges(sourceUnit.Pokemon);
-        yield return sourceUnit.Hud.UpdateHP();//actualizamos el hud por si se reduce la HP del pokemon
-
-        //comprobamos si muere por el estado alterado:
-        if (sourceUnit.Pokemon.CurrentHP <= 0)
-        {
-            yield return dialogBox.TypeDialog($"{sourceUnit.Pokemon.Base.name} fainted");
-
-            sourceUnit.PlayFaintAnimation();
-
-            yield return new WaitForSeconds(2f);
-            yield return CheckForBattleOver(sourceUnit);
-        }
-    }
-
+    #endregion
+    /*
+     * Metodos que se utilizan en la gestion del turno
+     */
+    #region Battle
+    /*
+     * Metodo que se encarga de toda la gestion del turno, que movimiento ira primero, cuando se dara cada efecto, etc
+     */
     IEnumerator RunTurns(BattleAction playerAction)
     {
         state = BattleState.RunningTurn;
@@ -370,12 +304,12 @@ public class BattleSystem : MonoBehaviour
             {
                 playerGoesFirst = false;
             }
-            else if(enemyMovePriority == playerMovePriority)
+            else if (enemyMovePriority == playerMovePriority)
             {
                 playerGoesFirst = playerUnit.Pokemon.Speed >= enemyUnit.Pokemon.Speed;
             }
 
-            var firstUnit = (playerGoesFirst)? playerUnit : enemyUnit;
+            var firstUnit = (playerGoesFirst) ? playerUnit : enemyUnit;
             var secondUnit = (playerGoesFirst) ? enemyUnit : playerUnit;
 
             //lo guardamos por si muere en el primer turno
@@ -384,7 +318,7 @@ public class BattleSystem : MonoBehaviour
             //First Turn
             yield return RunMove(firstUnit, secondUnit, firstUnit.Pokemon.CurrentMove);
             yield return RunAfterTurn(firstUnit);
-            if (state == BattleState.BattleOver) 
+            if (state == BattleState.BattleOver)
             {
                 yield break;
             }
@@ -425,7 +359,100 @@ public class BattleSystem : MonoBehaviour
             ActionSelection(); //TODO: SOSPECHOSO: El problema es que esta llegando aqui sin esperar a que selecciones el nuevo pokemon (comprobar si pasa solo cuando te matan atacando tu el ultimo o es siempre)
         }
     }
+    /*
+     *  Metodo que dado un movimiento, el pokemon que lo hace y el target, ejecuta el movimiento
+     */
+    IEnumerator RunMove(BattleUnit sourceUnit, BattleUnit targetUnit, Move move)
+    {
+        bool canRunMove = sourceUnit.Pokemon.OnBeforeMove();
+        if (!canRunMove)
+        {
+            yield return ShowStatusChanges(sourceUnit.Pokemon);
+            yield return sourceUnit.Hud.UpdateHP();
+            yield break;
+        }
+        yield return ShowStatusChanges(sourceUnit.Pokemon);
 
+        move.PP--;
+        yield return dialogBox.TypeDialog($"{sourceUnit.Pokemon.Base.Name} used { move.Base.Name}");
+
+        if (CheckIfMoveHits(move, sourceUnit.Pokemon, targetUnit.Pokemon))
+        {
+            sourceUnit.PlayAttackAnimation();
+            yield return new WaitForSeconds(Settings.animationDuration);
+
+            targetUnit.PlayHitAnimation();
+
+            if (move.Base.Category == MoveCategory.Status)
+            {
+                yield return RunMoveEffects(move.Base.Effects, sourceUnit.Pokemon, targetUnit.Pokemon, move.Base.Target);
+            }
+            else
+            {
+                var damageDetails = targetUnit.Pokemon.TakeDamage(move, sourceUnit.Pokemon);
+                yield return targetUnit.Hud.UpdateHP();
+                yield return ShowDamageDetails(damageDetails);
+            }
+
+            if (move.Base.SecondaryEffects != null && move.Base.SecondaryEffects.Count > 0 && targetUnit.Pokemon.CurrentHP > 0)
+            {
+                foreach (var secondary in move.Base.SecondaryEffects)
+                {
+                    var rnd = UnityEngine.Random.Range(1, 101);
+                    if (rnd <= secondary.Chance)
+                    {
+                        yield return RunMoveEffects(secondary, sourceUnit.Pokemon, targetUnit.Pokemon, secondary.Target);
+                    }
+
+                }
+            }
+
+            if (targetUnit.Pokemon.CurrentHP <= 0) //si el target muere
+            {
+                yield return dialogBox.TypeDialog($"{targetUnit.Pokemon.Base.name} fainted");
+
+                targetUnit.PlayFaintAnimation();
+
+                yield return new WaitForSeconds(Settings.pauseDuration);
+                yield return CheckForBattleOver(targetUnit);
+            }
+
+        }
+        else
+        {
+            yield return dialogBox.TypeDialog($"{sourceUnit.Pokemon.Base.name}'s attack missed");
+        }
+    }
+    /*
+     * Metodo encargado de gestionar todos los eventos que ocurren al finalizar un turno o movimiento como por ejemplo los efectos de algunos estados alterados
+     */
+    IEnumerator RunAfterTurn(BattleUnit sourceUnit)
+    {
+        if (state == BattleState.BattleOver)
+        {
+            yield break;
+        }
+        //Con esto esperamos a que el efecto secundario del ataque no haga efecto hasta que (en caso de haber matado al enemigo) salga el nuevo pokemon (cosa que en los juegos actuales no es asi creo recordar)
+        yield return new WaitUntil(() => state == BattleState.RunningTurn);
+
+        sourceUnit.Pokemon.OnAfterTurn();
+        yield return ShowStatusChanges(sourceUnit.Pokemon);
+        yield return sourceUnit.Hud.UpdateHP();//actualizamos el hud por si se reduce la HP del pokemon
+
+        //comprobamos si muere por el estado alterado:
+        if (sourceUnit.Pokemon.CurrentHP <= 0)
+        {
+            yield return dialogBox.TypeDialog($"{sourceUnit.Pokemon.Base.name} fainted");
+
+            sourceUnit.PlayFaintAnimation();
+
+            yield return new WaitForSeconds(Settings.pauseDuration);
+            yield return CheckForBattleOver(sourceUnit);
+        }
+    }
+    /*
+     * Metodo encargado de gestionar los efectos secundarios de los ataques, como bajadas de stats o estados alterados
+     */
     IEnumerator RunMoveEffects(MoveEffects effects, Pokemon source, Pokemon target, MoveTarget moveTarget)
     {
         //Boosts
@@ -458,9 +485,52 @@ public class BattleSystem : MonoBehaviour
         //Mostramos en el dialogo las bajadas y subidas de stats de ambos pokemons
         yield return ShowStatusChanges(source);
         yield return ShowStatusChanges(target);
-        
-    }
 
+    }
+    #endregion
+    /*
+     * Metodos que utilizan los que gestionan la batalla y/o menu
+     */
+    #region Utils
+    /*
+     * Metodo encargado de gestionar el cambio de pokemon una vez es seleccionado el nuevo, actualiza la UI y el pokemon
+     */
+    IEnumerator SwitchPokemon(Pokemon newPokemon)
+    {
+        //Debug Info------------------------------------------
+        //Debug.Log("Current pokemon info:");
+        //MyDebug.ShowPokemonState(playerUnit.Pokemon);
+        //----------------------------------------------------
+
+        //Reset volatile status and boosts in current pokemon
+        playerUnit.Pokemon.ResetVolatileStatus();
+        playerUnit.Pokemon.ResetStateBoosts();
+
+        //Check if current pokemon is still alive
+        if (playerUnit.Pokemon.CurrentHP > 0)
+        {
+            yield return dialogBox.TypeDialog($"Come back {playerUnit.Pokemon.Base.Name}");
+            playerUnit.PlayFaintAnimation(); //TODO. Esto es de momento hasta que haya una animacion de cambiar
+            yield return new WaitForSeconds(Settings.pauseDuration);
+        }
+
+        //Set up new pokemon in battle
+        playerUnit.SetUp(newPokemon);
+        dialogBox.SetMoveNames(newPokemon.Moves);
+        yield return dialogBox.TypeDialog($"Go {newPokemon.Base.Name}.");
+
+        //Debug Info------------------------------------------
+        //Debug.Log("New pokemon info:");
+        //MyDebug.ShowPokemonState(playerUnit.Pokemon);
+        //----------------------------------------------------
+
+        //TODO: Cambiamos el orden del equipo (Para esto deberiamos poder conservar el orden del equipo original, como de momento es una movida pasamos del tema)
+
+        state = BattleState.RunningTurn;
+    }
+    /*
+     * Metodo encargado de determinar si una batalla ha terminado (cuando a alguno de los dos no les quedan pokemons se acaba
+     */
     IEnumerator CheckForBattleOver(BattleUnit faintedUnit) //simplificar este metodo en la medida de lo posible!!
     {
         if (faintedUnit.IsPlayer)
@@ -481,14 +551,14 @@ public class BattleSystem : MonoBehaviour
             var nextPokemon = enemyParty.GetHealthyPokemon();
             if (nextPokemon != null)
             {
-                //se selecciona el siguiente automaticamente de momento, en un futuro se elegira en el equipo
+                //se selecciona el siguiente automaticamente de momento, en un futuro se elegira en el equipo 
                 //CopyPaste temporal:
                 //-----------------------------------------------------------------------------------------------------------------------
                 enemyUnit.SetUp(nextPokemon);
 
                 yield return (dialogBox.TypeDialog($"Next enemy pokemon is {nextPokemon.Base.Name}."));
 
-                yield return new WaitForSeconds(2f);
+                yield return new WaitForSeconds(Settings.pauseDuration);
 
                 state = BattleState.RunningTurn;
 
@@ -502,7 +572,9 @@ public class BattleSystem : MonoBehaviour
         }
     }
 
-    //en base a la precision indica si golpear el movimiento
+    /*
+     * En base a la precision y cambio en estadisticas de evasion y precision de los afectados indica si golpea el movimiento
+     */
     bool CheckIfMoveHits(Move move, Pokemon source, Pokemon target)
     {
         if (move.Base.AlwaysHits)
@@ -535,7 +607,9 @@ public class BattleSystem : MonoBehaviour
 
         return UnityEngine.Random.Range(1, 101) <= moveAccurarcy;
     }
-
+    /*
+     * Indica que la batalla se ha acabado y deja todo preparado para la siguiente
+     */
     void BattleOver(bool won)
     {
         state = BattleState.BattleOver;
@@ -545,10 +619,11 @@ public class BattleSystem : MonoBehaviour
 
         //Esto es temporal, es para que si juegas varias veces con el entrenador este tenga los pokemons curados
         enemyParty.HealthParty();
-
-        OnBattleOver(won);
+        OnBattleOver(won); //Evento
     }
-
+    /*
+     * Muestra en el dialogo de batalla todos los efectos que ha tenido el movimiento
+     */
     IEnumerator ShowDamageDetails(DamageDetails damageDetails)
     {
         if (damageDetails.Critical > 1f)
@@ -564,7 +639,9 @@ public class BattleSystem : MonoBehaviour
             yield return dialogBox.TypeDialog($"It´s not very effective!");
         }
     }
-
+    /*
+     * Muestra en la pantalla de dialogo los estados alterados del pokemon
+     */
     IEnumerator ShowStatusChanges(Pokemon pokemon)
     {
         while (pokemon.StatusChanges.Count > 0)
@@ -573,4 +650,5 @@ public class BattleSystem : MonoBehaviour
             yield return dialogBox.TypeDialog(message);
         }
     }
+    #endregion
 }

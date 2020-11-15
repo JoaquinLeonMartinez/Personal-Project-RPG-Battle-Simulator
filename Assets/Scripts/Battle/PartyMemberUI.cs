@@ -19,12 +19,13 @@ public class PartyMemberUI : MonoBehaviour
 
         nameText.text = pokemon.Base.Name;
         levelText.text = "Lvl " + pokemon.Level;
-        hpBar.SetHP((float)pokemon.CurrentHP / pokemon.MaxHP);
+        hpBar.SetHP(pokemon.CurrentHP , pokemon.MaxHP);
+
     }
 
     public IEnumerator UpdateHP()
     {
-        yield return hpBar.SetHPSmooth((float)_pokemon.CurrentHP / _pokemon.MaxHP);
+        yield return hpBar.SetHPSmooth(_pokemon.CurrentHP , _pokemon.MaxHP);
     }
 
     public void SetSelected(bool selected)

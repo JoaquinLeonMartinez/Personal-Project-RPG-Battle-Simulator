@@ -154,7 +154,7 @@ MonoBehaviour:
   pokemons:
   - _base: {fileID: 11400000, guid: addea20ff47b3134ea54b723a6438e94, type: 2}
     _level: 10
-  - _base: {fileID: 11400000, guid: b73cae7ffd20c7a48a2748d81c554697, type: 2}
+  - _base: {fileID: 11400000, guid: 1ffb25ee19b69354885cfc6ad8264f5e, type: 2}
     _level: 13
   - _base: {fileID: 11400000, guid: b73cae7ffd20c7a48a2748d81c554697, type: 2}
     _level: 2
@@ -2173,7 +2173,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 637a25931cb5f064ea54ab1c5c74b3e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  lettersPerSecond: 60
   highlightedColor: {r: 0.1527234, g: 0.23176111, b: 0.8301887, a: 1}
   dialogText: {fileID: 1185185905}
   actionSelector: {fileID: 626467140}

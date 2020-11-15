@@ -113,7 +113,7 @@ public class ConditionsDB
                 }
             }
         },
-        //vVlatile Status Conditions:
+        //Volatile Status Conditions:
         {
             ConditionID.confusion,
             new Condition()

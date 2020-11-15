@@ -26,7 +26,8 @@ public class BattleHud : MonoBehaviour
 
         nameText.text = pokemon.Base.Name;
         levelText.text = "Lvl " + pokemon.Level;
-        hpBar.SetHP((float) pokemon.CurrentHP / pokemon.MaxHP);
+        hpBar.SetHP(pokemon.CurrentHP , pokemon.MaxHP);
+
 
         statusColors = new Dictionary<ConditionID, Color>()
         {
@@ -58,7 +59,7 @@ public class BattleHud : MonoBehaviour
     {
         if (_pokemon.HpChanged)
         {
-            yield return hpBar.SetHPSmooth((float)_pokemon.CurrentHP / _pokemon.MaxHP);
+            yield return hpBar.SetHPSmooth(_pokemon.CurrentHP , _pokemon.MaxHP);
             _pokemon.HpChanged = false;
         }
 

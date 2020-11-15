@@ -94,11 +94,16 @@ public class Pokemon
     public void SetVolatileStatus(ConditionID conditionId)
     {
         if (VolatileStatus != null) return; //si ya tiene un estado alterado no puede poner otro
-        //TODO: Aqui habria que añadir un mensaje no?
+        //TODO: tal y como esta hecho ahora no puede tener mas de un status volatile, esto no es correcto
 
         VolatileStatus = ConditionsDB.Conditions[conditionId];
         VolatileStatus?.OnStart?.Invoke(this);
         StatusChanges.Enqueue($"{Base.Name} {VolatileStatus.StartMessage}");
+    }
+
+    public void ResetVolatileStatus()
+    {
+        VolatileStatus = null;
     }
 
     public void CureVolatileStatus()
@@ -107,7 +112,7 @@ public class Pokemon
     }
 
 
-    void ResetStateBoosts()
+    public void ResetStateBoosts()
     {
         StatBoosts = new Dictionary<Stat, int>()
         {
@@ -125,14 +130,14 @@ public class Pokemon
     {
         //TODO: A esto habra que añadir los IVS y los EVs: formula original: https://bulbapedia.bulbagarden.net/wiki/Statistic#:~:text=When%20a%20Pok%C3%A9mon%20grows%20a,individual%20value%20and%20effort%20value.
         Stats = new Dictionary<Stat, int>();
-        Stats.Add(Stat.Attack, Mathf.FloorToInt((Base.Attack * Level) / 100) + 5);
-        Stats.Add(Stat.Defense, Mathf.FloorToInt((Base.Defense * Level) / 100) + 5);
-        Stats.Add(Stat.SpAttack, Mathf.FloorToInt((Base.SpAttack * Level) / 100) + 5);
-        Stats.Add(Stat.SpDefense, Mathf.FloorToInt((Base.SpDefense * Level) / 100) + 5);
-        Stats.Add(Stat.Speed, Mathf.FloorToInt((Base.Speed * Level) / 100) + 5);
+        Stats.Add(Stat.Attack, Mathf.FloorToInt((Base.Attack * 2 * Level) / 100) + 5);
+        Stats.Add(Stat.Defense, Mathf.FloorToInt((Base.Defense * 2 * Level) / 100) + 5);
+        Stats.Add(Stat.SpAttack, Mathf.FloorToInt((Base.SpAttack * 2 * Level) / 100) + 5);
+        Stats.Add(Stat.SpDefense, Mathf.FloorToInt((Base.SpDefense * 2 * Level) / 100) + 5);
+        Stats.Add(Stat.Speed, Mathf.FloorToInt((Base.Speed * 2 * Level) / 100) + 5);
         Stats.Add(Stat.Accurarcy, 1);
 
-        MaxHP = Mathf.FloorToInt((Base.Hp * Level) / 100) + Level + 10;
+        MaxHP = Mathf.FloorToInt((Base.Hp * 2 * Level) / 100) + Level + 10;
     }
 
     public int GetStat(Stat stat)
