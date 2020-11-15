@@ -21,6 +21,7 @@ public class Pokemon
             return _level;
         }
     }
+
     public int CurrentHP { get; set; }
 
     public List<Move> Moves { get; set; }
@@ -222,7 +223,10 @@ public class Pokemon
         //Type efectivenes
         float type = TypeChart.GetEffectiveness(move.Base.Type, this.Base.Type1) * TypeChart.GetEffectiveness(move.Base.Type, this.Base.Type2);
 
-        float modifiers = Random.Range(0.85f, 1f) * type * critical;
+        //STAB
+        float stab = attacker.CalculateStab(move);
+
+        float modifiers = Random.Range(0.85f, 1f) * type * critical * stab;
 
         var damageDetails = new DamageDetails()
         {
@@ -242,6 +246,15 @@ public class Pokemon
 
         UpdateHP(damage);
         return damageDetails;
+    }
+
+    public float CalculateStab(Move move)
+    {
+        if (move.Base.Type == Base.Type1 || move.Base.Type == Base.Type2)
+        {
+            return 1.5f;
+        }
+        return 1f;
     }
 
     public bool OnBeforeMove()
