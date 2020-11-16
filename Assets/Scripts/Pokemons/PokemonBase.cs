@@ -180,7 +180,75 @@ public class TypeChart
         int col = (int)defenseType;
 
         return chart[row][col];
-
     }
 }
 
+public enum PokemonNature
+{
+    Hardy,
+    Bold,
+    Modest,
+    Calm,
+    Timid,
+    Lonely,
+    Docile,
+    Mild,
+    Gentle,
+    Hasty,
+    Adamant,
+    Impish,
+    Bashful,
+    Careful,
+    Jolly,
+    Naughty,
+    Lax,
+    Rash,
+    Quirky,
+    Naive,
+    Brave,
+    Relaxed,
+    Quiet,
+    Sassy,
+    Serious
+}
+
+public class NatureEffect
+{
+    static float[][] chart =
+    {   
+        //                    Att  Def  SpAt SpDf Spe
+        /*Hardy*/new float[] { 1f , 1f , 1f , 1f , 1f },
+        /*Bold*/new float[] { 0.9f , 1.1f , 1f , 1f , 1f },
+        /*Modest*/new float[] { 0.9f , 1f , 1.1f , 1f , 1f },
+        /*Calm*/new float[] { 0.9f , 1f , 1f , 1.1f , 1f },
+        /*Timid*/new float[] { 0.9f , 1f , 1f , 1f , 1.1f },
+        /*Lonely*/new float[] { 1.1f , 0.9f , 1f , 1f , 1f },
+        /*Docile*/new float[] { 1f , 1f , 1f , 1f , 1f },
+        /*Mild*/new float[] { 1f , 0.9f , 1.1f , 1f , 1f },
+        /*Gentle*/new float[] { 1f , 0.9f , 1f , 1.1f , 1f },
+        /*Hasty*/new float[] { 1f , 0.9f , 1f , 1f , 1.1f },
+        /*Adamant*/new float[] { 1.1f , 1f , 0.9f , 1f , 1f },
+        /*Impish*/new float[] { 1f , 1.1f , 0.9f , 1f , 1f },
+        /*Bashful*/new float[] { 1f , 1f , 1f , 1f , 1f },
+        /*Careful*/new float[] { 1f , 1f , 0.9f , 1.1f , 1f },
+        /*Jolly*/new float[] { 1f , 1f , 0.9f , 1f , 1.1f },
+        /*Naughty*/new float[] { 1.1f , 1f , 1f , 0.9f , 1f },
+        /*Lax*/new float[] { 1f , 1.1f , 1f , 0.9f , 1f },
+        /*Rash*/new float[] { 1f , 1f , 1.1f , 0.9f , 1f },
+        /*Quirky*/new float[] { 1f , 1f , 1f , 1f , 1f },
+        /*Naive*/new float[] { 1f , 1f , 1f , 0.9f , 1.1f },
+        /*Brave*/new float[] { 1.1f , 1f , 1f , 1f , 0.9f },
+        /*Relaxed*/new float[] { 1f , 1.1f , 1f , 1f , 0.9f },
+        /*Quiet*/new float[] { 1f , 1f , 1.1f , 1f , 0.9f },
+        /*Sassy*/new float[] { 1f , 1f , 1f , 1.1f , 0.9f },
+        /*Serious*/new float[] { 1f , 1f , 1f , 1f , 1f },
+    };
+
+    public static float GetNatureModifier(PokemonNature pokemonNature, Stat stat)
+    {
+        int row = (int)pokemonNature;
+        int col = (int)stat;
+
+        return chart[row][col];
+    }
+}

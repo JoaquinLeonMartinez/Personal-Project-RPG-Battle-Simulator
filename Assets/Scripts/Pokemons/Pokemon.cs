@@ -27,7 +27,7 @@ public class Pokemon
     public int CurrentHP { get; set; }
 
     public List<Move> Moves { get; set; }
-
+    public PokemonNature Nature { get; set; }
     public Move CurrentMove { get; set; }
 
     public Dictionary<Stat, int> Stats { get; private set; }
@@ -150,11 +150,11 @@ public class Pokemon
     {
         //TODO: A esto habra que añadir los IVS y los EVs: formula original: https://bulbapedia.bulbagarden.net/wiki/Statistic#:~:text=When%20a%20Pok%C3%A9mon%20grows%20a,individual%20value%20and%20effort%20value.
         Stats = new Dictionary<Stat, int>();
-        Stats.Add(Stat.Attack, Mathf.FloorToInt((Base.Attack * 2 * Level) / 100) + 5);
-        Stats.Add(Stat.Defense, Mathf.FloorToInt((Base.Defense * 2 * Level) / 100) + 5);
-        Stats.Add(Stat.SpAttack, Mathf.FloorToInt((Base.SpAttack * 2 * Level) / 100) + 5);
-        Stats.Add(Stat.SpDefense, Mathf.FloorToInt((Base.SpDefense * 2 * Level) / 100) + 5);
-        Stats.Add(Stat.Speed, Mathf.FloorToInt((Base.Speed * 2 * Level) / 100) + 5);
+        Stats.Add(Stat.Attack, Mathf.FloorToInt((((Base.Attack * 2 * Level) / 100f) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Attack)));
+        Stats.Add(Stat.Defense, Mathf.FloorToInt((((Base.Defense * 2 * Level) / 100) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Defense)));
+        Stats.Add(Stat.SpAttack, Mathf.FloorToInt((((Base.SpAttack * 2 * Level) / 100) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Defense)));
+        Stats.Add(Stat.SpDefense, Mathf.FloorToInt((((Base.SpDefense * 2 * Level) / 100) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Defense)));
+        Stats.Add(Stat.Speed, Mathf.FloorToInt((((Base.Speed * 2 * Level) / 100) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Defense)));
         Stats.Add(Stat.Accurarcy, 1);
 
         MaxHP = Mathf.FloorToInt((Base.Hp * 2 * Level) / 100) + Level + 10;
