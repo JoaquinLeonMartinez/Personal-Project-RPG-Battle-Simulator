@@ -33,7 +33,8 @@ public class Pokemon
     public Dictionary<Stat, int> Stats { get; private set; }
 
     public Dictionary<Stat, int> StatBoosts { get; private set; } //el integer valdra entre -6 y 6 debido a que es lo maximo que se puede boostear una caracteristica
-
+    public Dictionary<Stat, int> EV { get; private set; } //EVs
+    public Dictionary<Stat, int> IV { get; private set; } //IVs
     public Condition Status { get; private set; }
 
     public int StatusTime { get; set; } //numero de turnos que un pokemon tendra un estado alterado, por ejemplo dormido
@@ -68,6 +69,26 @@ public class Pokemon
                 break; //Comprobar si con esto pilla los 4 primeros o los ultimos (todo seria ordenar learnable moves de mayor a menor)
             }
         }
+
+        EV = new Dictionary<Stat, int>()
+        {
+            {Stat.Attack, 0},
+            {Stat.Defense, 0},
+            {Stat.SpAttack, 0},
+            {Stat.SpDefense, 0},
+            {Stat.Speed, 0},
+            {Stat.Hp, 0}
+        };
+
+        IV = new Dictionary<Stat, int>()
+        {
+            {Stat.Attack, 0},
+            {Stat.Defense, 0},
+            {Stat.SpAttack, 0},
+            {Stat.SpDefense, 0},
+            {Stat.Speed, 0},
+            {Stat.Hp, 0}
+        };
 
         CalculateStats();
         this.CurrentHP = MaxHP;
@@ -131,7 +152,6 @@ public class Pokemon
         VolatileStatus = null;
     }
 
-
     public void ResetStateBoosts()
     {
         StatBoosts = new Dictionary<Stat, int>()
@@ -150,14 +170,14 @@ public class Pokemon
     {
         //TODO: A esto habra que añadir los IVS y los EVs: formula original: https://bulbapedia.bulbagarden.net/wiki/Statistic#:~:text=When%20a%20Pok%C3%A9mon%20grows%20a,individual%20value%20and%20effort%20value.
         Stats = new Dictionary<Stat, int>();
-        Stats.Add(Stat.Attack, Mathf.FloorToInt((((Base.Attack * 2 * Level) / 100f) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Attack)));
-        Stats.Add(Stat.Defense, Mathf.FloorToInt((((Base.Defense * 2 * Level) / 100) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Defense)));
-        Stats.Add(Stat.SpAttack, Mathf.FloorToInt((((Base.SpAttack * 2 * Level) / 100) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Defense)));
-        Stats.Add(Stat.SpDefense, Mathf.FloorToInt((((Base.SpDefense * 2 * Level) / 100) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Defense)));
-        Stats.Add(Stat.Speed, Mathf.FloorToInt((((Base.Speed * 2 * Level) / 100) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Defense)));
+        Stats.Add(Stat.Attack, Mathf.FloorToInt(((((Base.Attack * 2 + IV[Stat.Attack] + (EV[Stat.Attack]/4)) * Level) / 100f) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Attack)));
+        Stats.Add(Stat.Defense, Mathf.FloorToInt(((((Base.Defense * 2 + IV[Stat.Defense] + (EV[Stat.Defense] / 4)) * Level) / 100) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Defense)));
+        Stats.Add(Stat.SpAttack, Mathf.FloorToInt(((((Base.SpAttack * 2 + IV[Stat.SpAttack] + (EV[Stat.SpAttack] / 4)) * Level) / 100) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.SpAttack)));
+        Stats.Add(Stat.SpDefense, Mathf.FloorToInt(((((Base.SpDefense * 2 + IV[Stat.SpDefense] + (EV[Stat.SpDefense] / 4)) * Level) / 100) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.SpDefense)));
+        Stats.Add(Stat.Speed, Mathf.FloorToInt(((((Base.Speed * 2 + IV[Stat.Speed] + (EV[Stat.Speed] / 4)) * Level) / 100) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Speed)));
         Stats.Add(Stat.Accurarcy, 1);
 
-        MaxHP = Mathf.FloorToInt((Base.Hp * 2 * Level) / 100) + Level + 10;
+        MaxHP = Mathf.FloorToInt(((Base.Hp * 2 + IV[Stat.Hp] + (EV[Stat.Hp] / 4)) * Level) / 100) + Level + 10;
     }
 
     public int GetStat(Stat stat)

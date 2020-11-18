@@ -46,6 +46,7 @@ public class BattleSystem : MonoBehaviour
         this.playerParty = playerParty;
         this.enemyParty = enemyParty;
         currentAction = 0;
+        dialogBox.UpdateActionSelection(currentAction);
         currentMove = 0;
         currentMember = 0;
         StartCoroutine(SetupBattle());
@@ -75,6 +76,8 @@ public class BattleSystem : MonoBehaviour
      */
     public void HandleUpdate()
     {
+        //Debug.Log($"Battle State = {state}");
+
         if (state == BattleState.ActionSelection)
         {
             HandleActionSelection();
@@ -135,6 +138,7 @@ public class BattleSystem : MonoBehaviour
             else if (currentAction == 3)
             {
                 //Run
+                BattleOver(false); //Pierdes automaticamente
             }
         }
     }
@@ -187,8 +191,9 @@ public class BattleSystem : MonoBehaviour
             }
             else //En este caso significa que ha muerto el anterior
             {
+                Debug.Log($"DETECTA QUE HEMOS MUERTO :d");
                 state = BattleState.Busy;
-                StartCoroutine(SwitchPokemon(selectedMember));
+                StartCoroutine(SwitchPokemon(selectedMember)); //TODO: REVISAR ESTO
             }
         }
         else if (Input.GetKeyDown(KeyCode.X))
@@ -316,7 +321,7 @@ public class BattleSystem : MonoBehaviour
             var secondPokemon = secondUnit.Pokemon;
 
             //First Turn
-            yield return RunMove(firstUnit, secondUnit, firstUnit.Pokemon.CurrentMove);
+            yield return RunMove(firstUnit, secondUnit, firstUnit.Pokemon.CurrentMove); //TODO: Si muero aqui, el tio vuelve a atacar
             //Aqui en un futuro ira un "afterMove" para el tema de recoils y demas
             //yield return RunAfterTurn(firstUnit);
             if (state == BattleState.BattleOver)
@@ -328,7 +333,7 @@ public class BattleSystem : MonoBehaviour
             if (secondPokemon.CurrentHP > 0)
             {
                 //Second Turn
-                yield return RunMove(secondUnit, firstUnit, secondUnit.Pokemon.CurrentMove);
+                yield return RunMove(secondUnit, firstUnit, secondUnit.Pokemon.CurrentMove); //TODO: Si muero aqui no pasa nada
                 //Aqui en un futuro ira un "afterMove" para el tema de recoils y demas
                 //yield return RunAfterTurn(secondUnit);
                 if (state == BattleState.BattleOver)

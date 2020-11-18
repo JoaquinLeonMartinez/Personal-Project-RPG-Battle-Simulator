@@ -139,6 +139,7 @@ public enum Stat
     SpAttack,
     SpDefense,
     Speed,
+    Hp,
     Accurarcy,
     Evasion
 }
