@@ -95,6 +95,7 @@ public class Pokemon
         ResetStateBoosts();
         Status = null;
         VolatileStatus = null;
+        Nature = PokemonNature.Adamant; //por defecto
 
     }
 

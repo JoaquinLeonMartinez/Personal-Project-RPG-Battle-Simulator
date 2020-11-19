@@ -191,9 +191,8 @@ public class BattleSystem : MonoBehaviour
             }
             else //En este caso significa que ha muerto el anterior
             {
-                Debug.Log($"DETECTA QUE HEMOS MUERTO :d");
                 state = BattleState.Busy;
-                StartCoroutine(SwitchPokemon(selectedMember)); //TODO: REVISAR ESTO
+                StartCoroutine(SwitchPokemon(selectedMember));
             }
         }
         else if (Input.GetKeyDown(KeyCode.X))
@@ -321,7 +320,7 @@ public class BattleSystem : MonoBehaviour
             var secondPokemon = secondUnit.Pokemon;
 
             //First Turn
-            yield return RunMove(firstUnit, secondUnit, firstUnit.Pokemon.CurrentMove); //TODO: Si muero aqui, el tio vuelve a atacar
+            yield return RunMove(firstUnit, secondUnit, firstUnit.Pokemon.CurrentMove);
             //Aqui en un futuro ira un "afterMove" para el tema de recoils y demas
             //yield return RunAfterTurn(firstUnit);
             if (state == BattleState.BattleOver)
@@ -333,7 +332,7 @@ public class BattleSystem : MonoBehaviour
             if (secondPokemon.CurrentHP > 0)
             {
                 //Second Turn
-                yield return RunMove(secondUnit, firstUnit, secondUnit.Pokemon.CurrentMove); //TODO: Si muero aqui no pasa nada
+                yield return RunMove(secondUnit, firstUnit, secondUnit.Pokemon.CurrentMove);
                 //Aqui en un futuro ira un "afterMove" para el tema de recoils y demas
                 //yield return RunAfterTurn(secondUnit);
                 if (state == BattleState.BattleOver)
@@ -646,6 +645,7 @@ public class BattleSystem : MonoBehaviour
 
         //Esto es temporal, es para que si juegas varias veces con el entrenador este tenga los pokemons curados
         enemyParty.HealthParty();
+        playerParty.HealthParty();
         OnBattleOver(won); //Evento
     }
     /*
