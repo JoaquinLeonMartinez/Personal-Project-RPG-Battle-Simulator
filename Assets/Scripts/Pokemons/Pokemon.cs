@@ -22,6 +22,10 @@ public class Pokemon
         {
             return _level;
         }
+        set
+        {
+            _level = value;
+        }
     }
 
     public int CurrentHP { get; set; }
@@ -180,6 +184,16 @@ public class Pokemon
 
         MaxHP = Mathf.FloorToInt(((Base.Hp * 2 + IV[Stat.Hp] + (EV[Stat.Hp] / 4)) * Level) / 100) + Level + 10;
         Stats.Add(Stat.Hp, Mathf.FloorToInt(((Base.Hp * 2 + IV[Stat.Hp] + (EV[Stat.Hp] / 4)) * Level) / 100) + Level + 10);
+    }
+
+    public void RefreshStats()
+    {
+        Stats[Stat.Attack] = Mathf.FloorToInt(((((Base.Attack * 2 + IV[Stat.Attack] + (EV[Stat.Attack] / 4)) * Level) / 100f) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Attack));
+        Stats[Stat.Defense] = Mathf.FloorToInt(((((Base.Defense * 2 + IV[Stat.Defense] + (EV[Stat.Defense] / 4)) * Level) / 100) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Defense));
+        Stats[Stat.SpAttack] = Mathf.FloorToInt(((((Base.SpAttack * 2 + IV[Stat.SpAttack] + (EV[Stat.SpAttack] / 4)) * Level) / 100) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.SpAttack));
+        Stats[Stat.SpDefense] = Mathf.FloorToInt(((((Base.SpDefense * 2 + IV[Stat.SpDefense] + (EV[Stat.SpDefense] / 4)) * Level) / 100) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.SpDefense));
+        Stats[Stat.Speed] = Mathf.FloorToInt(((((Base.Speed * 2 + IV[Stat.Speed] + (EV[Stat.Speed] / 4)) * Level) / 100) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Speed));
+        Stats[Stat.Hp] = Mathf.FloorToInt(((Base.Hp * 2 + IV[Stat.Hp] + (EV[Stat.Hp] / 4)) * Level) / 100) + Level + 10;
     }
 
     public int GetStat(Stat stat)

@@ -21,7 +21,7 @@ public class TeamBuildMemberUI : MonoBehaviour
 
         nameText.text = pokemon.Base.Name;
         levelText.text = "Lvl " + pokemon.Level;
-        //nature.text = nameof(pokemon.Nature); //Comprobar quee esto funcione
+        nature.text = pokemon.Nature.ToString(); //Comprobar quee esto funcione
 
         //Completar movimientos y stats
         SetMoveNames();
