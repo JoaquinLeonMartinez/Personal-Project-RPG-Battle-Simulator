@@ -7,7 +7,9 @@ public enum GameState { FreeRoam, Battle }
 public class GameController : MonoBehaviour
 {
     //STATE DESIGN PATTERN : Es un patron de diseño que se utiliza para gestionar los distintos controladores dentro del juego
-    [SerializeField] PlayerController playerController;
+    //[SerializeField] PlayerController playerController; //De momento nada
+    [SerializeField] MenuController menuController;
+    [SerializeField] GameObject playerController;
     [SerializeField] GameObject enemyController;
     [SerializeField] BattleSystem battleSystem;
     [SerializeField] GameObject mainMenu;
@@ -23,7 +25,7 @@ public class GameController : MonoBehaviour
 
     private void Start()
     {
-        playerController.OnBattleStart += StartBattle; //nos subscrivimos al evento e indicamos que accion realizaremos 
+        menuController.OnBattleStart += StartBattle; //nos subscrivimos al evento e indicamos que accion realizaremos 
         battleSystem.OnBattleOver += EndBattle;
     }
 
@@ -31,7 +33,7 @@ public class GameController : MonoBehaviour
     {
         if (state == GameState.FreeRoam)
         {
-            playerController.HandleUpdate();
+            menuController.HandleUpdate();
         }
         else if (state == GameState.Battle)
         {
@@ -39,11 +41,12 @@ public class GameController : MonoBehaviour
         }
     }
 
-    void StartBattle()
+    void StartBattle(bool isTrainerBattle)
     {
         state = GameState.Battle;
         battleSystem.gameObject.SetActive(true);
         mainMenu.SetActive(false);
+        this.isTrainerBattle = isTrainerBattle;
 
         var playerParty = playerController.GetComponent<PokemonParty>();
         PokemonParty enemyParty = null;

@@ -179,6 +179,7 @@ public class Pokemon
         Stats.Add(Stat.Accurarcy, 1);
 
         MaxHP = Mathf.FloorToInt(((Base.Hp * 2 + IV[Stat.Hp] + (EV[Stat.Hp] / 4)) * Level) / 100) + Level + 10;
+        Stats.Add(Stat.Hp, Mathf.FloorToInt(((Base.Hp * 2 + IV[Stat.Hp] + (EV[Stat.Hp] / 4)) * Level) / 100) + Level + 10);
     }
 
     public int GetStat(Stat stat)

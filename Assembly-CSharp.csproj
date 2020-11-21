@@ -73,7 +73,10 @@
     <Compile Include="Assets\Scripts\Data\ConditionsDB.cs" />
     <Compile Include="Assets\Scripts\GameController.cs" />
     <Compile Include="Assets\Scripts\Gameplay\MapArea.cs" />
+    <Compile Include="Assets\Scripts\Menu\MenuController.cs" />
+    <Compile Include="Assets\Scripts\Menu\PokemonBuilderUI.cs" />
     <Compile Include="Assets\Scripts\Menu\TeamBuildMemberUI.cs" />
+    <Compile Include="Assets\Scripts\Menu\TeamBuildScreen.cs" />
     <Compile Include="Assets\Scripts\Player\PlayerController.cs" />
     <Compile Include="Assets\Scripts\Pokemons\Condition.cs" />
     <Compile Include="Assets\Scripts\Pokemons\Move.cs" />

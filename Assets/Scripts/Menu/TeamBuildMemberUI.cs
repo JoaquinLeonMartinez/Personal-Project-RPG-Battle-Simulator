@@ -11,6 +11,8 @@ public class TeamBuildMemberUI : MonoBehaviour
     [SerializeField] List<Text> moveTexts;
     [SerializeField] List<Text> statTexts;
 
+    [SerializeField] Color highlightedColor;
+
     Pokemon _pokemon;
 
     public void setData(Pokemon pokemon)
@@ -19,7 +21,7 @@ public class TeamBuildMemberUI : MonoBehaviour
 
         nameText.text = pokemon.Base.Name;
         levelText.text = "Lvl " + pokemon.Level;
-        nature.text = nameof(pokemon.Nature); //Comprobar quee esto funcione
+        //nature.text = nameof(pokemon.Nature); //Comprobar quee esto funcione
 
         //Completar movimientos y stats
         SetMoveNames();
@@ -52,5 +54,17 @@ public class TeamBuildMemberUI : MonoBehaviour
         statTexts[5].text = $"SpDf - {_pokemon.Base.SpDefense} - {_pokemon.EV[Stat.SpDefense]} - {_pokemon.IV[Stat.SpDefense]} - {_pokemon.Stats[Stat.SpDefense]}";
         statTexts[6].text = $"Spe - {_pokemon.Base.Speed} - {_pokemon.EV[Stat.Speed]} - {_pokemon.IV[Stat.Speed]} - {_pokemon.Stats[Stat.Speed]}";
 
+    }
+
+    public void SetSelected(bool selected)
+    {
+        if (selected)
+        {
+            nameText.color = highlightedColor;
+        }
+        else
+        {
+            nameText.color = Color.black;
+        }
     }
 }

@@ -26,9 +26,11 @@ public class PlayerController : MonoBehaviour
         
     }
 
+    /* Esto ha pasado al MenuController, ya que de momento el player no lo usaremos para nada
     public void StartBattle()
     {
         //lanzamos el evento para que ya quien sea que lo reciba (el GameController) haga lo que considere necesario.
         OnBattleStart();
     }
+    */
 }
