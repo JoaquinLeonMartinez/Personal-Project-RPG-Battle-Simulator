@@ -94,12 +94,13 @@ public class Pokemon
             {Stat.Hp, 0}
         };
 
+        Nature = PokemonNature.Adamant; //por defecto
         CalculateStats();
         this.CurrentHP = MaxHP;
         ResetStateBoosts();
         Status = null;
         VolatileStatus = null;
-        Nature = PokemonNature.Adamant; //por defecto
+        
 
     }
 
@@ -173,7 +174,6 @@ public class Pokemon
 
     public void CalculateStats()
     {
-        //TODO: A esto habra que añadir los IVS y los EVs: formula original: https://bulbapedia.bulbagarden.net/wiki/Statistic#:~:text=When%20a%20Pok%C3%A9mon%20grows%20a,individual%20value%20and%20effort%20value.
         Stats = new Dictionary<Stat, int>();
         Stats.Add(Stat.Attack, Mathf.FloorToInt(((((Base.Attack * 2 + IV[Stat.Attack] + (EV[Stat.Attack]/4)) * Level) / 100f) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Attack)));
         Stats.Add(Stat.Defense, Mathf.FloorToInt(((((Base.Defense * 2 + IV[Stat.Defense] + (EV[Stat.Defense] / 4)) * Level) / 100) + 5) * NatureEffect.GetNatureModifier(Nature, Stat.Defense)));

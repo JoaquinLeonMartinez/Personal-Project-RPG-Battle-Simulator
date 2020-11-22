@@ -97,7 +97,6 @@ public class MenuController : MonoBehaviour
         }
 
         currentMainMenuOption = Mathf.Clamp(currentMainMenuOption, 0, 2);
-        //UpdateMainMenuSelection();
         UpdateSelection(currentMainMenuOption, mainMenuTexts);
 
 
@@ -166,17 +165,12 @@ public class MenuController : MonoBehaviour
         }
 
         currentPokemonOption = Mathf.Clamp(currentPokemonOption, 0, buildPokemonTexts.Count - 1);
-        //UpdateBuildPokemonSelection(currentPokemonOption);
         UpdateSelection(currentPokemonOption, buildPokemonTexts);
 
         //Para esto no hace falta presionar Z
         if (currentPokemonOption == 1) // Level Selector
         {
             LevelSelector();
-        }
-        else if (currentPokemonOption == 2) // Active Nature selector
-        {
-            NatureSelector();
         }
 
         if (Input.GetKeyDown(KeyCode.Z))
@@ -186,11 +180,19 @@ public class MenuController : MonoBehaviour
             {
 
             }
-            else if (currentPokemonOption == 3) // Go to menu Screen
+            else if (currentPokemonOption == 2) // Go to object screen
             {
 
             }
-            else if (currentPokemonOption == 4) // Go to stats Screen
+            else if (currentPokemonOption == 3) // Go to ability Screen
+            {
+
+            }
+            else if (currentPokemonOption == 4) // Go to moves Screen
+            {
+
+            }
+            else if (currentPokemonOption == 5) // Go to stats Screen
             {
                 GoToStatsScreen();
             }
@@ -253,7 +255,7 @@ public class MenuController : MonoBehaviour
         }
         else if (statSelector == EVsPokemonTexts.Count - 1)
         {
-            //NatureSelector();
+            NatureSelector();
         }
 
         if (Input.GetKeyDown(KeyCode.Z))
@@ -436,8 +438,8 @@ public class MenuController : MonoBehaviour
         }
 
         natureSelector = Mathf.Clamp(natureSelector, 0, Enum.GetNames(typeof(PokemonNature)).Length - 1);
-        buildPokemonTexts[currentPokemonOption].text = ((PokemonNature)natureSelector).ToString();
         playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].Nature = ((PokemonNature)natureSelector);
+        RefreshStatEditor();
 
         if (Input.GetKeyUp(KeyCode.LeftArrow))
         {
@@ -574,7 +576,7 @@ public class MenuController : MonoBehaviour
 
     public void GoToStatsScreen()
     {
-        statsEditorScreen.GetComponent<StatsBuilderScreen>().SetData(playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption]);
+        RefreshStatEditor();
         state = MenuState.StatsEditor;
         statsEditorScreen.SetActive(true);
         pokemonBuildScreen.SetActive(false);

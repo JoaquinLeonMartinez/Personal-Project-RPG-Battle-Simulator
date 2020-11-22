@@ -11,12 +11,18 @@ public class StatsBuilderScreen : MonoBehaviour
     [SerializeField] List<Text> statTextsEVs;
     [SerializeField] List<Text> statTextsIvs;
     [SerializeField] List<Text> statTextsTotal;
+    [SerializeField] List<StatBar> statBars;
     [SerializeField] Text nameText;
     [SerializeField] Text levelText;
     [SerializeField] Text abilityText;
     [SerializeField] Text objectText;
 
     [SerializeField] Text natureInput;
+    //TODO: Estos colores deberian se constantes
+    [SerializeField] Color highStatColor;
+    [SerializeField] Color lowStatColor;
+
+    Dictionary<int,Stat> dictionary;
 
     public void SetData(Pokemon pokemon)
     {
@@ -27,6 +33,22 @@ public class StatsBuilderScreen : MonoBehaviour
         abilityText.text = $"none";
         objectText.text = $"none";
 
+        dictionary = new Dictionary<int, Stat>();
+        dictionary.Add(0, Stat.Hp);
+        dictionary.Add(1, Stat.Attack);
+        dictionary.Add(2, Stat.Defense);
+        dictionary.Add(3, Stat.SpAttack);
+        dictionary.Add(4, Stat.SpDefense);
+        dictionary.Add(5, Stat.Speed);
+
+        for (int i = 0; i < statTextsEVs.Count; i++)
+        {
+            statTextsEVs[i].text = pokemon.EV[dictionary[i]].ToString();
+            statTextsIvs[i].text = pokemon.IV[dictionary[i]].ToString();
+            statTextsTotal[i].text = pokemon.Stats[dictionary[i]].ToString();
+            statBars[i].SetStat(pokemon.Stats[dictionary[i]]);
+        }
+
         statTextsBase[0].text = pokemon.Base.Hp.ToString();
         statTextsBase[1].text = pokemon.Base.Attack.ToString();
         statTextsBase[2].text = pokemon.Base.Defense.ToString();
@@ -34,27 +56,26 @@ public class StatsBuilderScreen : MonoBehaviour
         statTextsBase[4].text = pokemon.Base.SpDefense.ToString();
         statTextsBase[5].text = pokemon.Base.Speed.ToString();
 
-        statTextsEVs[0].text = pokemon.EV[Stat.Hp].ToString();
-        statTextsEVs[1].text = pokemon.EV[Stat.Attack].ToString();
-        statTextsEVs[2].text = pokemon.EV[Stat.Defense].ToString();
-        statTextsEVs[3].text = pokemon.EV[Stat.SpAttack].ToString();
-        statTextsEVs[4].text = pokemon.EV[Stat.SpDefense].ToString();
-        statTextsEVs[5].text = pokemon.EV[Stat.Speed].ToString();
+        setStatColor(pokemon);
+    }
 
-        statTextsIvs[0].text = pokemon.IV[Stat.Hp].ToString();
-        statTextsIvs[1].text = pokemon.IV[Stat.Attack].ToString();
-        statTextsIvs[2].text = pokemon.IV[Stat.Defense].ToString();
-        statTextsIvs[3].text = pokemon.IV[Stat.SpAttack].ToString();
-        statTextsIvs[4].text = pokemon.IV[Stat.SpDefense].ToString();
-        statTextsIvs[5].text = pokemon.IV[Stat.Speed].ToString();
-
-        statTextsTotal[0].text = pokemon.Stats[Stat.Hp].ToString();
-        statTextsTotal[1].text = pokemon.Stats[Stat.Attack].ToString();
-        statTextsTotal[2].text = pokemon.Stats[Stat.Defense].ToString();
-        statTextsTotal[3].text = pokemon.Stats[Stat.SpAttack].ToString();
-        statTextsTotal[4].text = pokemon.Stats[Stat.SpDefense].ToString();
-        statTextsTotal[5].text = pokemon.Stats[Stat.Speed].ToString();
-
+    public void setStatColor(Pokemon pokemon)
+    {
+        for (int i = 1; i < statTextsTotal.Count; i++)
+        {
+            if (NatureEffect.GetNatureModifier(pokemon.Nature, dictionary[i]) == 1.1f)
+            {
+                statTextsTotal[i].color = highStatColor;
+            }
+            else if (NatureEffect.GetNatureModifier(pokemon.Nature, dictionary[i]) == 0.9f)
+            {
+                statTextsTotal[i].color = lowStatColor;
+            }
+            else
+            {
+                statTextsTotal[i].color = Color.black;
+            }
+        }
     }
 
 
