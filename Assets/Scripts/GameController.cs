@@ -39,6 +39,12 @@ public class GameController : MonoBehaviour
         {
             battleSystem.HandleUpdate();
         }
+
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            EndGame();
+        }
+
     }
 
     void StartBattle(bool isTrainerBattle)
@@ -92,6 +98,11 @@ public class GameController : MonoBehaviour
     public void DeactiveTrainerBattle()
     {
         isTrainerBattle = false;
+    }
+
+    public void EndGame()
+    {
+        Application.Quit();
     }
 
 }
