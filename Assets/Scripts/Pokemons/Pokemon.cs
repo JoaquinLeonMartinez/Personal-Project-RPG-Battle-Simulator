@@ -196,6 +196,20 @@ public class Pokemon
         Stats[Stat.Hp] = Mathf.FloorToInt(((Base.Hp * 2 + IV[Stat.Hp] + (EV[Stat.Hp] / 4)) * Level) / 100) + Level + 10;
     }
 
+    public int GetAllEvsSum()
+    {
+        int evs = 0;
+
+        evs += EV[Stat.Hp];
+        evs += EV[Stat.Attack];
+        evs += EV[Stat.Defense];
+        evs += EV[Stat.SpAttack];
+        evs += EV[Stat.SpDefense];
+        evs += EV[Stat.Speed];
+
+        return evs;
+    }
+
     public int GetStat(Stat stat)
     {
         int statVal = Stats[stat];

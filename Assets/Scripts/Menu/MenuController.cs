@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public enum MenuState { MainMenu, TeamBuild, PokemonBuild }
+public enum MenuState { MainMenu, TeamBuild, PokemonBuild, StatsEditor }
 
 public class MenuController : MonoBehaviour
 {
@@ -19,6 +19,12 @@ public class MenuController : MonoBehaviour
     int currentPokemonOption;
     int levelSelector;
     int natureSelector;
+    int statSelector;
+    int statPoints;
+    //Todo: estos valores debrian estar en una clase a parte de constantes
+    int iVsLimit = 31;
+    int eVsLimit = 252;
+    int eVsGlobalLimit = 512;
 
     bool rightKeyDown;
     bool leftKeyDown;
@@ -27,7 +33,11 @@ public class MenuController : MonoBehaviour
 
     [SerializeField] List<Text> mainMenuTexts;
     [SerializeField] GameObject teamBuildScreen;
+    [SerializeField] GameObject statsEditorScreen;
     [SerializeField] List<Text> buildPokemonTexts; //name + level + nature + moves + stats
+    [SerializeField] List<Text> EVsPokemonTexts;
+    [SerializeField] List<Text> IVsPokemonTexts;
+    bool isEVsEditor;
 
     [SerializeField] GameObject pokemonBuildScreen;
     [SerializeField] GameObject mainMenuScreen;
@@ -40,6 +50,7 @@ public class MenuController : MonoBehaviour
         rightKeyDown = false;
         leftKeyDown = false;
         timerPause = 0;
+        isEVsEditor = true;
     }
 
 
@@ -68,6 +79,10 @@ public class MenuController : MonoBehaviour
         {
             HandleUpdatePokemonBuild();
         }
+        else if (state == MenuState.StatsEditor)
+        {
+            HandleUpdatePokemonStats();
+        }
     }
 
     public void HandleUpdateMainMenu()
@@ -82,7 +97,9 @@ public class MenuController : MonoBehaviour
         }
 
         currentMainMenuOption = Mathf.Clamp(currentMainMenuOption, 0, 2);
-        UpdateMainMenuSelection();
+        //UpdateMainMenuSelection();
+        UpdateSelection(currentMainMenuOption, mainMenuTexts);
+
 
         if (Input.GetKeyDown(KeyCode.Z))
         {
@@ -149,7 +166,8 @@ public class MenuController : MonoBehaviour
         }
 
         currentPokemonOption = Mathf.Clamp(currentPokemonOption, 0, buildPokemonTexts.Count - 1);
-        UpdateBuildPokemonSelection(currentPokemonOption);
+        //UpdateBuildPokemonSelection(currentPokemonOption);
+        UpdateSelection(currentPokemonOption, buildPokemonTexts);
 
         //Para esto no hace falta presionar Z
         if (currentPokemonOption == 1) // Level Selector
@@ -174,7 +192,7 @@ public class MenuController : MonoBehaviour
             }
             else if (currentPokemonOption == 4) // Go to stats Screen
             {
-
+                GoToStatsScreen();
             }
         }
         else if (Input.GetKeyDown(KeyCode.X))
@@ -183,6 +201,204 @@ public class MenuController : MonoBehaviour
         }
     }
 
+    public void HandleUpdatePokemonStats()
+    {
+        if (Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            statSelector ++;
+        }
+        else if (Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            statSelector --;
+        }
+
+        if (Input.GetKeyDown(KeyCode.RightArrow))
+        {
+            if (statSelector == 0)
+            {
+                isEVsEditor = false;
+                EVsPokemonTexts[0].color = Color.black;
+            }
+        }
+        else if (Input.GetKeyDown(KeyCode.LeftArrow))
+        {
+            if (statSelector == 0)
+            {
+                isEVsEditor = true;
+                IVsPokemonTexts[0].color = Color.black;
+            }
+        }
+
+        if (isEVsEditor)
+        {
+            statSelector = Mathf.Clamp(statSelector, 0, EVsPokemonTexts.Count - 1);
+            UpdateSelection(statSelector, EVsPokemonTexts);
+        }
+        else
+        {
+            statSelector = Mathf.Clamp(statSelector, 0, IVsPokemonTexts.Count - 1);
+            UpdateSelection(statSelector, IVsPokemonTexts);
+        }
+
+        if (statSelector > 0 && statSelector < EVsPokemonTexts.Count - 2)
+        {
+            if (isEVsEditor)
+            {
+                StatsSelector(EVsPokemonTexts);
+            }
+            else
+            {
+                StatsSelector(IVsPokemonTexts);
+            }
+        }
+        else if (statSelector == EVsPokemonTexts.Count - 1)
+        {
+            //NatureSelector();
+        }
+
+        if (Input.GetKeyDown(KeyCode.Z))
+        {
+            //TODO (en principio aqui nada)
+        }
+        else if (Input.GetKeyDown(KeyCode.X))
+        {
+            GoToSelectedPokemon();
+        }
+    }
+
+    public void StatsSelector(List<Text> statsText)
+    {
+        
+        int limitPoints = iVsLimit;
+        if (isEVsEditor)
+        {
+            limitPoints = eVsLimit;
+        }
+
+        Stat choicedStat = Stat.Hp;
+
+        if(statSelector == 1) //hp
+        {
+            choicedStat = Stat.Hp;
+        }
+        else if (statSelector == 2) //Attack
+        {
+            choicedStat = Stat.Attack;
+        }
+        else if (statSelector == 3) //Defense
+        {
+            choicedStat = Stat.Defense;
+        }
+        else if (statSelector == 4) //SpAttack
+        {
+            choicedStat = Stat.SpAttack;
+        }
+        else if (statSelector == 5) //SpDefense
+        {
+            choicedStat = Stat.SpDefense;
+        }
+        else if (statSelector == 6) //Speed
+        {
+            choicedStat = Stat.Speed;
+        }
+
+        if (Input.GetKeyDown(KeyCode.LeftArrow))
+        {
+            leftKeyDown = true;
+        }
+        else if (Input.GetKeyDown(KeyCode.RightArrow))
+        {
+            rightKeyDown = true;
+        }
+
+        if (isEVsEditor)
+        {
+            statPoints = playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].EV[choicedStat];
+        }
+        else
+        {
+            statPoints = playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].IV[choicedStat];
+        }
+        
+
+        if (leftKeyDown)
+        {
+            if (statPoints > 0)
+            {
+                if (timerPause <= 0)
+                {
+                    if (isEVsEditor)
+                    {
+                        statPoints -= 4;
+                        playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].EV[choicedStat] = statPoints;
+                        RefreshStatEditor();
+                    }
+                    else
+                    {
+                        statPoints--;
+                        playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].IV[choicedStat] = statPoints;
+                        RefreshStatEditor();
+                    }
+                    
+                    statsText[statSelector].text = statPoints.ToString();
+                    timerPause = pauseDuration;
+                }
+                else
+                {
+                    timerPause -= Time.deltaTime;
+                }
+            }
+        }
+        if (rightKeyDown)
+        {
+            if (statPoints < limitPoints)
+            {
+                if (timerPause <= 0)
+                {
+                    if (isEVsEditor) 
+                    {
+                        if (eVsGlobalLimit > playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].GetAllEvsSum())
+                        {
+                            statPoints += 4;
+                            playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].EV[choicedStat] = statPoints;
+                            RefreshStatEditor();
+                        }
+                    }
+                    else
+                    {
+                        statPoints ++;
+                        playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].IV[choicedStat] = statPoints;
+                        RefreshStatEditor();
+                    }
+                    statsText[statSelector].text = statPoints.ToString();
+                    timerPause = pauseDuration;
+                }
+                else
+                {
+                    timerPause -= Time.deltaTime;
+                }
+            }
+        }
+
+        if (Input.GetKeyUp(KeyCode.LeftArrow))
+        {
+            leftKeyDown = false;
+            timerPause = 0;
+        }
+        if (Input.GetKeyUp(KeyCode.RightArrow))
+        {
+            rightKeyDown = false;
+            timerPause = 0;
+        }
+
+
+    }
+
+    public void RefreshStatEditor()
+    {
+        playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].RefreshStats();
+        statsEditorScreen.GetComponent<StatsBuilderScreen>().SetData(playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption]);
+    }
     public void NatureSelector()
     {
         if (Input.GetKeyDown(KeyCode.LeftArrow))
@@ -292,32 +508,18 @@ public class MenuController : MonoBehaviour
         }
 
     }
-    public void UpdateBuildPokemonSelection(int selected)
+
+    public void UpdateSelection(int selected, List<Text> textsList)
     {
-        for (int i = 0; i < buildPokemonTexts.Count; i++)
+        for (int i = 0; i < textsList.Count; i++)
         {
             if (i == selected)
             {
-                buildPokemonTexts[i].color = highlightedColor;
+                textsList[i].color = highlightedColor;
             }
             else
             {
-                buildPokemonTexts[i].color = Color.black;
-            }
-        }
-    }
-
-    public void UpdateMainMenuSelection()
-    {
-        for (int i = 0; i < mainMenuTexts.Count; i++)
-        {
-            if (i == currentMainMenuOption)
-            {
-                mainMenuTexts[i].color = highlightedColor;
-            }
-            else
-            {
-                mainMenuTexts[i].color = Color.black;
+                textsList[i].color = Color.black;
             }
         }
     }
@@ -367,5 +569,14 @@ public class MenuController : MonoBehaviour
         currentPokemonOption = 0;
         levelSelector = 0;
         natureSelector = 0;
+        statSelector = 0;
+    }
+
+    public void GoToStatsScreen()
+    {
+        statsEditorScreen.GetComponent<StatsBuilderScreen>().SetData(playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption]);
+        state = MenuState.StatsEditor;
+        statsEditorScreen.SetActive(true);
+        pokemonBuildScreen.SetActive(false);
     }
 }

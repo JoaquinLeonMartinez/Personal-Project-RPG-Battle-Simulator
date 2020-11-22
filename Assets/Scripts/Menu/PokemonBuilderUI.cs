@@ -16,10 +16,6 @@ public class PokemonBuilderUI : MonoBehaviour
     [SerializeField] Text levelInput;
     [SerializeField] Text natureInput;
 
-    public void Init()
-    {
-
-    }
 
     public void SetData(Pokemon pokemon)
     {
