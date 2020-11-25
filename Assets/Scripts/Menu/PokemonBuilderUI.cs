@@ -12,6 +12,8 @@ public class PokemonBuilderUI : MonoBehaviour
     [SerializeField] Text type1;
     [SerializeField] Text type2;
 
+    [SerializeField] StatsBuildPanel statsPanel;
+
     public void SetData(Pokemon pokemon)
     {
         frontSprite.sprite = pokemon.Base.FrontSprite;
@@ -30,6 +32,7 @@ public class PokemonBuilderUI : MonoBehaviour
         }
 
         SetMoveNames(pokemon);
+        statsPanel.SetData(pokemon);
     }
 
     public void SetMoveNames(Pokemon pokemon)

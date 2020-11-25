@@ -401,6 +401,14 @@ public class MenuController : MonoBehaviour
         playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].RefreshStats();
         statsEditorScreen.GetComponent<StatsBuilderScreen>().SetData(playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption]);
     }
+    //TODO: Haciendo el componente stats un componente individual aqui no harian falta dos metodos
+    public void RefreshPokemonEditor()
+    {
+        playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].RefreshStats();
+        //Siempre se llamaria a este:
+        pokemonBuildScreen.GetComponent<StatsBuildPanel>().SetData(playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption]);
+    }
+
     public void NatureSelector()
     {
         if (Input.GetKeyDown(KeyCode.LeftArrow))
@@ -472,6 +480,7 @@ public class MenuController : MonoBehaviour
                     levelSelector--;
                     buildPokemonTexts[currentPokemonOption].text = levelSelector.ToString();
                     playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].Level = levelSelector;
+                    RefreshPokemonEditor();
                     timerPause = pauseDuration;
                 }
                 else
@@ -489,6 +498,7 @@ public class MenuController : MonoBehaviour
                     levelSelector++;
                     buildPokemonTexts[currentPokemonOption].text = levelSelector.ToString();
                     playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].Level = levelSelector;
+                    RefreshPokemonEditor();
                     timerPause = pauseDuration;
                 }
                 else
