@@ -76,6 +76,7 @@
     <Compile Include="Assets\Scripts\Gameplay\MapArea.cs" />
     <Compile Include="Assets\Scripts\Menu\MenuController.cs" />
     <Compile Include="Assets\Scripts\Menu\PokemonBuilderUI.cs" />
+    <Compile Include="Assets\Scripts\Menu\PokemonSelectorScreen.cs" />
     <Compile Include="Assets\Scripts\Menu\StatBar.cs" />
     <Compile Include="Assets\Scripts\Menu\StatsBuildPanel.cs" />
     <Compile Include="Assets\Scripts\Menu\StatsBuilderScreen.cs" />

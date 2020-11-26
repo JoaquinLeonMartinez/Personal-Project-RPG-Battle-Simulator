@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Vulpix
   m_EditorClassIdentifier: 
   name: Vulpix
+  pokedexId: 37
   description: 
   frontSprite: {fileID: 21300000, guid: 8e685c16c02277f42ae1ef6e0c8de58e, type: 3}
   backSprite: {fileID: 21300000, guid: 019aa9074c3d6f646857c42c7741a66b, type: 3}

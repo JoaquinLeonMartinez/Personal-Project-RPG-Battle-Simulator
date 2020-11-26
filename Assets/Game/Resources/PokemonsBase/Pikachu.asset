@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Pikachu
   m_EditorClassIdentifier: 
   name: Pikachu
+  pokedexId: 25
   description: 
   frontSprite: {fileID: 21300000, guid: a7ba07ed665903e4dbe513127dce8ce6, type: 3}
   backSprite: {fileID: 21300000, guid: 37b922099b144ab4d8f04e1c96742469, type: 3}

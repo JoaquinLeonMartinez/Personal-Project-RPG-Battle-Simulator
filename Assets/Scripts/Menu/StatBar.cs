@@ -11,11 +11,20 @@ public class StatBar : MonoBehaviour
     [SerializeField] Color highColor;
     [SerializeField] Color reallyHighColor;
     //TODO: Esto deberia ser una constante (y los valores del update color tambien)
-    int maxStatValue = 785;
+    int maxStatValue = 785; 
+    int maxStatBase = 255;
 
     public void SetStat(int statValue)
     {
         float statNormalized = (float)statValue / (float)maxStatValue;
+
+        stat.transform.localScale = new Vector3(statNormalized, 1f);
+        UpdateColor(statNormalized);
+    }
+
+    public void SetStatBase(int statBase)
+    {
+        float statNormalized = (float)statBase / (float)maxStatBase;
 
         stat.transform.localScale = new Vector3(statNormalized, 1f);
         UpdateColor(statNormalized);

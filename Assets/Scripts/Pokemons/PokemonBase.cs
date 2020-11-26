@@ -7,6 +7,8 @@ public class PokemonBase : ScriptableObject
 {
     [SerializeField] string name;
 
+    [SerializeField] int pokedexId;
+
     [TextArea]
     [SerializeField] string description;
 
@@ -27,6 +29,10 @@ public class PokemonBase : ScriptableObject
     [SerializeField] List<LearnableMove> learnableMoves;
 
     //En lugar de hacer getters y setters creamos variables cpara obtener directamente los valores de forma publica
+    public int PokedexId 
+    { 
+        get { return pokedexId; } 
+    }
     public string Name
     {
         get { return name; }

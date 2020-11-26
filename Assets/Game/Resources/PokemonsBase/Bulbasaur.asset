@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Bulbasaur
   m_EditorClassIdentifier: 
   name: Bulbasaur
+  pokedexId: 1
   description: 
   frontSprite: {fileID: 21300000, guid: bfa8439764272b446b60e47b85954d43, type: 3}
   backSprite: {fileID: 21300000, guid: de3b9bcec3fd8924b8bc8b6a43090888, type: 3}

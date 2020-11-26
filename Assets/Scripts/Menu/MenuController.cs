@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public enum MenuState { MainMenu, TeamBuild, PokemonBuild, StatsEditor }
+public enum MenuState { MainMenu, TeamBuild, PokemonBuild, StatsEditor, PokemonSelector }
 
 public class MenuController : MonoBehaviour
 {
@@ -21,6 +21,7 @@ public class MenuController : MonoBehaviour
     int natureSelector;
     int statSelector;
     int statPoints;
+    int pokemonSelector;
     //Todo: estos valores debrian estar en una clase a parte de constantes
     int iVsLimit = 31;
     int eVsLimit = 252;
@@ -34,6 +35,7 @@ public class MenuController : MonoBehaviour
     [SerializeField] List<Text> mainMenuTexts;
     [SerializeField] GameObject teamBuildScreen;
     [SerializeField] GameObject statsEditorScreen;
+    [SerializeField] GameObject pokemonSelectorScreen;
     [SerializeField] List<Text> buildPokemonTexts; //name + level + nature + moves + stats
     [SerializeField] List<Text> EVsPokemonTexts;
     [SerializeField] List<Text> IVsPokemonTexts;
@@ -56,7 +58,7 @@ public class MenuController : MonoBehaviour
 
     void Update()
     {
-        
+        Debug.Log($"MenuState: {state}");
     }
 
     public void StartBattle(bool isTrainerBattle)
@@ -82,6 +84,10 @@ public class MenuController : MonoBehaviour
         else if (state == MenuState.StatsEditor)
         {
             HandleUpdatePokemonStats();
+        }
+        else if (state == MenuState.PokemonSelector)
+        {
+            HandleUpdatePokemonSelector();
         }
     }
 
@@ -145,6 +151,7 @@ public class MenuController : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Z))
         {
+            teamBuildScreen.gameObject.SetActive(false);
             GoToSelectedPokemon();
         }
         else if (Input.GetKeyDown(KeyCode.X))
@@ -178,7 +185,7 @@ public class MenuController : MonoBehaviour
             //TODO
             if (currentPokemonOption == 0) // Go to Pokemon Screen
             {
-
+                GoToPokemonSelectorScreen();
             }
             else if (currentPokemonOption == 2) // Go to object screen
             {
@@ -264,6 +271,39 @@ public class MenuController : MonoBehaviour
         }
         else if (Input.GetKeyDown(KeyCode.X))
         {
+            statsEditorScreen.gameObject.SetActive(false);
+            GoToSelectedPokemon();
+        }
+    }
+
+    public void HandleUpdatePokemonSelector()
+    {
+        if (Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            pokemonSelector++;
+        }
+        else if (Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            pokemonSelector--;
+        }
+        else if (Input.GetKeyDown(KeyCode.RightArrow))
+        {
+            pokemonSelector = pokemonSelector + 5;
+        }
+        else if (Input.GetKeyDown(KeyCode.LeftArrow))
+        {
+            pokemonSelector = pokemonSelector - 5;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Z))
+        {
+            //TODO Si lo seleccionas se guarda y te vuelves a lo de antes
+            pokemonSelectorScreen.gameObject.SetActive(false);
+            GoToSelectedPokemon();
+        }
+        else if (Input.GetKeyDown(KeyCode.X))
+        {
+            pokemonSelectorScreen.gameObject.SetActive(false);
             GoToSelectedPokemon();
         }
     }
@@ -556,7 +596,7 @@ public class MenuController : MonoBehaviour
 
     public void GoToSelectedPokemon() //Habra que ver como llamar a este desde el editor (con el click del raton) y que vaya al adecuado
     {
-        teamBuildScreen.gameObject.SetActive(false);
+        
         pokemonBuildScreen.gameObject.SetActive(true);
         pokemonBuildScreen.GetComponent<PokemonBuilderUI>().SetData(playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption]);
         levelSelector = playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].Level;
@@ -591,4 +631,12 @@ public class MenuController : MonoBehaviour
         statsEditorScreen.SetActive(true);
         pokemonBuildScreen.SetActive(false);
     }
+    public void GoToPokemonSelectorScreen()
+    {
+        state = MenuState.PokemonSelector;
+        pokemonSelectorScreen.SetActive(true);
+        pokemonBuildScreen.SetActive(false);
+        pokemonSelectorScreen?.GetComponent<PokemonSelectorScreen>().SetData(playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption]);
+    }
+
 }
