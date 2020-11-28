@@ -75,8 +75,11 @@
     <Compile Include="Assets\Scripts\GameController.cs" />
     <Compile Include="Assets\Scripts\Gameplay\MapArea.cs" />
     <Compile Include="Assets\Scripts\Menu\MenuController.cs" />
+    <Compile Include="Assets\Scripts\Menu\MovesSelectorScreen.cs" />
+    <Compile Include="Assets\Scripts\Menu\MovesSlotLoader.cs" />
     <Compile Include="Assets\Scripts\Menu\PokemonBuilderUI.cs" />
     <Compile Include="Assets\Scripts\Menu\PokemonSelectorScreen.cs" />
+    <Compile Include="Assets\Scripts\Menu\PokemonSlotLoader.cs" />
     <Compile Include="Assets\Scripts\Menu\StatBar.cs" />
     <Compile Include="Assets\Scripts\Menu\StatsBuildPanel.cs" />
     <Compile Include="Assets\Scripts\Menu\StatsBuilderScreen.cs" />
@@ -86,6 +89,7 @@
     <Compile Include="Assets\Scripts\Pokemons\Condition.cs" />
     <Compile Include="Assets\Scripts\Pokemons\Move.cs" />
     <Compile Include="Assets\Scripts\Pokemons\MoveBase.cs" />
+    <Compile Include="Assets\Scripts\Pokemons\Pokedex.cs" />
     <Compile Include="Assets\Scripts\Pokemons\Pokemon.cs" />
     <Compile Include="Assets\Scripts\Pokemons\PokemonBase.cs" />
     <Compile Include="Assets\Scripts\Pokemons\PokemonParty.cs" />

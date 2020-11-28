@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public enum MenuState { MainMenu, TeamBuild, PokemonBuild, StatsEditor, PokemonSelector }
+public enum MenuState { MainMenu, TeamBuild, PokemonBuild, StatsEditor, PokemonSelector, MoveSelector, MoveSlotSelector }
 
 public class MenuController : MonoBehaviour
 {
@@ -22,6 +22,10 @@ public class MenuController : MonoBehaviour
     int statSelector;
     int statPoints;
     int pokemonSelector;
+    int currentMoveSelector;
+    int moveSlotSelector;
+    int learnableMoveSelector;
+
     //Todo: estos valores debrian estar en una clase a parte de constantes
     int iVsLimit = 31;
     int eVsLimit = 252;
@@ -39,12 +43,15 @@ public class MenuController : MonoBehaviour
     [SerializeField] List<Text> buildPokemonTexts; //name + level + nature + moves + stats
     [SerializeField] List<Text> EVsPokemonTexts;
     [SerializeField] List<Text> IVsPokemonTexts;
+    [SerializeField] List<Text> currentMovesTexts;
     bool isEVsEditor;
 
     [SerializeField] GameObject pokemonBuildScreen;
+    [SerializeField] GameObject moveSelectorScreen;
     [SerializeField] GameObject mainMenuScreen;
 
     [SerializeField] GameObject playerController;
+
 
     void Start()
     {
@@ -58,7 +65,7 @@ public class MenuController : MonoBehaviour
 
     void Update()
     {
-        Debug.Log($"MenuState: {state}");
+        //Debug.Log($"MenuState: {state}");
     }
 
     public void StartBattle(bool isTrainerBattle)
@@ -88,6 +95,14 @@ public class MenuController : MonoBehaviour
         else if (state == MenuState.PokemonSelector)
         {
             HandleUpdatePokemonSelector();
+        }
+        else if (state == MenuState.MoveSelector)
+        {
+            HandleUpdateMoveSelector();
+        }
+        else if (state == MenuState.MoveSlotSelector)
+        {
+            HandleUpdateMoveSlotSelector();
         }
     }
 
@@ -197,7 +212,7 @@ public class MenuController : MonoBehaviour
             }
             else if (currentPokemonOption == 4) // Go to moves Screen
             {
-
+                GoToMoveSelectorScreen();
             }
             else if (currentPokemonOption == 5) // Go to stats Screen
             {
@@ -278,26 +293,49 @@ public class MenuController : MonoBehaviour
 
     public void HandleUpdatePokemonSelector()
     {
+        bool updatePokemonSelector = false;
         if (Input.GetKeyDown(KeyCode.DownArrow))
         {
-            pokemonSelector++;
+            if (pokemonSelector < pokemonSelectorScreen.GetComponent<PokemonSelectorScreen>().GetPokedexLength() - 1)
+            {
+                pokemonSelector++;
+                updatePokemonSelector = true;
+            }
         }
         else if (Input.GetKeyDown(KeyCode.UpArrow))
         {
-            pokemonSelector--;
+            if (pokemonSelector > 0)
+            {
+                pokemonSelector--;
+                updatePokemonSelector = true;
+            }
+            
         }
         else if (Input.GetKeyDown(KeyCode.RightArrow))
         {
-            pokemonSelector = pokemonSelector + 5;
+            if (pokemonSelector + 4 < pokemonSelectorScreen.GetComponent<PokemonSelectorScreen>().GetPokedexLength() - 1)
+            {
+                pokemonSelector = pokemonSelector + 5;
+                updatePokemonSelector = true;
+            }     
         }
         else if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
-            pokemonSelector = pokemonSelector - 5;
+            if (pokemonSelector - 4 > 0)
+            {
+                pokemonSelector = pokemonSelector - 5;
+                updatePokemonSelector = true;
+            }
+        }
+
+        if (updatePokemonSelector)
+        {
+            pokemonSelectorScreen.GetComponent<PokemonSelectorScreen>().SetSlotsData(pokemonSelector);
         }
 
         if (Input.GetKeyDown(KeyCode.Z))
         {
-            //TODO Si lo seleccionas se guarda y te vuelves a lo de antes
+            ChangePokemon();
             pokemonSelectorScreen.gameObject.SetActive(false);
             GoToSelectedPokemon();
         }
@@ -306,6 +344,143 @@ public class MenuController : MonoBehaviour
             pokemonSelectorScreen.gameObject.SetActive(false);
             GoToSelectedPokemon();
         }
+    }
+
+    public void HandleUpdateMoveSelector()
+    {
+        if (Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            if (currentMoveSelector < currentMovesTexts.Count - 1)
+            {
+                currentMoveSelector++;
+            }
+        }
+        else if (Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            if (currentMoveSelector > 0)
+            {
+                currentMoveSelector--;
+            }
+
+        }
+
+        UpdateSelection(currentMoveSelector, currentMovesTexts);
+
+        if (Input.GetKeyDown(KeyCode.Z))
+        {
+            state = MenuState.MoveSlotSelector;
+        }
+        else if (Input.GetKeyDown(KeyCode.X))
+        {
+            GoToSelectedPokemon();
+        }
+    }
+
+    public void HandleUpdateMoveSlotSelector()
+    {
+        bool slotUpdate = false;
+        if (Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            //playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].Base.LearnableMoves.Count - 1
+            if (moveSlotSelector < moveSelectorScreen.GetComponent<MovesSelectorScreen>().GetMoveSlotsLength() - 1) //moveSelectorScreen.GetComponent<MovesSelectorScreen>().GetMoveSlotsLength() - 1
+            {
+                learnableMoveSelector++;
+                moveSlotSelector++;
+                slotUpdate = true;
+            }
+        }
+        else if (Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            if (moveSlotSelector > 0)
+            {
+                learnableMoveSelector--;
+                moveSlotSelector--;
+                slotUpdate = true;
+            }
+        }
+
+        //Debug.Log($"moveSlotSelector = {moveSlotSelector} -- learnableMoveSelector = {learnableMoveSelector}");
+
+        if (slotUpdate)
+        {
+            slotUpdate = false;
+            //Check si tenemos que actualizar la lista o solo el color
+            if (moveSlotSelector == moveSelectorScreen.GetComponent<MovesSelectorScreen>().GetMoveSlotsLength() - 1) //si ha llegado hasta el final
+            {
+                //comprobamos si quedan mas movimientos por mostrar pro la parte de abajo
+                if (learnableMoveSelector < playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].Base.LearnableMoves.Count - 1)
+                {
+                    //En este caso sumamos uno por abajo
+                    moveSelectorScreen.GetComponent<MovesSelectorScreen>().SetSlotsData(learnableMoveSelector - 2, playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption]);
+                    moveSlotSelector--;
+                    //learnableMoveSelector++;
+                }
+            }
+            else if (moveSlotSelector == 0)
+            {
+                if (learnableMoveSelector > 0)
+                {
+                    //En este caso sumamos uno por arriba
+                    moveSelectorScreen.GetComponent<MovesSelectorScreen>().SetSlotsData(learnableMoveSelector - 1, playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption]);
+                    moveSlotSelector++;
+                    //learnableMoveSelector--;
+                }
+            }
+        }
+        //Color
+        moveSelectorScreen.GetComponent<MovesSelectorScreen>().SetSlotSelected(moveSlotSelector);
+
+        if (Input.GetKeyDown(KeyCode.Z))
+        {
+            UpdateMove();
+
+        }
+        else if (Input.GetKeyDown(KeyCode.X))
+        {
+            state = MenuState.MoveSelector;
+            moveSlotSelector = 0;
+            moveSlotSelector = 0;
+            moveSelectorScreen.GetComponent<MovesSelectorScreen>().SetSlotSelected(-1); //de esta forma todos estaran en negro
+        }
+    }
+
+    public void UpdateMove()
+    {
+        if (playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].Base.LearnableMoves[learnableMoveSelector] != null)
+        {
+            Move newMove = new Move(playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].Base.LearnableMoves[learnableMoveSelector].Base);
+            if (IsValidMove(newMove, playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].Moves))
+            {
+                playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].Moves[currentMoveSelector] = newMove;
+                moveSelectorScreen.GetComponent<MovesSelectorScreen>().SetData(playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption]);
+            }
+        }
+        else
+        {
+            //TODO: si todos no son nulos esto es posible
+            //playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].Moves[currentMoveSelector].setNull();
+        }
+
+    }
+
+    public bool IsValidMove(Move newMove, List<Move> currentMoves)
+    {
+        bool isValid = true;
+
+        for (int i = 0; i < currentMoves.Count && isValid; i++)
+        {
+            if (newMove.Base.Name == currentMoves[i].Base.Name)
+            {
+                isValid = false;
+            }
+        }
+
+        return isValid;
+    }
+
+    public void ChangePokemon()
+    {
+        playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption].ChangeBasePokemon(pokemonSelectorScreen.GetComponent<PokemonSelectorScreen>().GetPokemonById(pokemonSelector));
     }
 
     public void StatsSelector(List<Text> statsText)
@@ -636,7 +811,16 @@ public class MenuController : MonoBehaviour
         state = MenuState.PokemonSelector;
         pokemonSelectorScreen.SetActive(true);
         pokemonBuildScreen.SetActive(false);
-        pokemonSelectorScreen?.GetComponent<PokemonSelectorScreen>().SetData(playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption]);
+        pokemonSelectorScreen?.GetComponent<PokemonSelectorScreen>().SetSlotsData(pokemonSelector);
     }
+
+    public void GoToMoveSelectorScreen()
+    {
+        state = MenuState.MoveSelector;
+        moveSelectorScreen.SetActive(true);
+        pokemonBuildScreen.SetActive(false);
+        moveSelectorScreen.GetComponent<MovesSelectorScreen>().SetData(playerController.GetComponent<PokemonParty>().Pokemons[currentTeamBuildOption]);
+    }
+
 
 }

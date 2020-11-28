@@ -86,12 +86,12 @@ public class Pokemon
 
         IV = new Dictionary<Stat, int>()
         {
-            {Stat.Attack, 0},
-            {Stat.Defense, 0},
-            {Stat.SpAttack, 0},
-            {Stat.SpDefense, 0},
-            {Stat.Speed, 0},
-            {Stat.Hp, 0}
+            {Stat.Attack, 31},
+            {Stat.Defense, 31},
+            {Stat.SpAttack, 31},
+            {Stat.SpDefense, 31},
+            {Stat.Speed, 31},
+            {Stat.Hp, 31}
         };
 
         Nature = PokemonNature.Adamant; //por defecto
@@ -392,6 +392,13 @@ public class Pokemon
         {
             CurrentHP = MaxHP;
         }
+    }
+
+    public void ChangeBasePokemon(PokemonBase pokemonBase)
+    {
+        _base = pokemonBase;
+        _level = 100; //default level
+        Init(); //Reset all
     }
 }
 
