@@ -5,7 +5,7 @@ using UnityEngine;
 
 public enum BattleState { Start, ActionSelection, MoveSelection, RunningTurn, Busy, PartyScreen, BattleOver }
 
-public enum BattleAction { Move, SwitchPokemon, UseItem, Run }
+public enum BattleAction { Move, SwitchPokemon, UseItem, Run, None}
 
 public class BattleSystem : MonoBehaviour
 {
@@ -33,6 +33,30 @@ public class BattleSystem : MonoBehaviour
     PokemonParty playerParty;
     //Equipo del rival
     PokemonParty enemyParty;
+
+    //Joaquin system
+    bool isBattleOver = false;
+
+    //Slots del player
+    [SerializeField] List<BattleUnit> player1Slots;
+    //Slots del enemigo
+    [SerializeField] List<BattleUnit> player2Slots;
+    //All slots
+    List<BattleUnit> gameSlots;
+    //Sorted:
+    List<BattleUnit> gameSlotsSorted;
+
+    //Equipo del jugador
+    PokemonParty player1Team;
+    //Equipo del rival
+    PokemonParty player2Team;
+
+
+
+    //List<BattleAction> battleActions;
+
+    int currentSlot;
+    //end Joaquin system
 
     /*
      * Estos metodos se encargan de iniciar el battle system
@@ -164,13 +188,15 @@ public class BattleSystem : MonoBehaviour
             currentMember -= 2;
         }
 
-        currentMember = Mathf.Clamp(currentMember, 0, playerParty.Pokemons.Count - 1);
+        //currentMember = Mathf.Clamp(currentMember, 0, playerParty.Pokemons.Count - 1);
+        currentMember = Mathf.Clamp(currentMember, 0, player1Team.Pokemons.Count - 1);
         partyScreen.UpdateMemberSelection(currentMember);
 
         if (Input.GetKeyDown(KeyCode.Z))
         {
             //Sale a combatir el pokemon seleccionado
-            var selectedMember = playerParty.Pokemons[currentMember];
+            //var selectedMember = playerParty.Pokemons[currentMember];
+            var selectedMember = player1Team.Pokemons[currentMember];
             if (selectedMember.CurrentHP <= 0)
             {
                 partyScreen.SetMessageText("You can´t send out a fainted pokemon");
@@ -187,11 +213,12 @@ public class BattleSystem : MonoBehaviour
             if (prevState == BattleState.ActionSelection) //En este caso cambia porque quiere, de modo que tras el cambio el enemigo atacara
             {
                 prevState = null;
-                StartCoroutine(RunTurns(BattleAction.SwitchPokemon));
+                //StartCoroutine(RunTurns(BattleAction.SwitchPokemon));
+                player1Slots[currentSlot].battleAction = BattleAction.SwitchPokemon;
             }
             else //En este caso significa que ha muerto el anterior
             {
-                state = BattleState.Busy;
+                //state = BattleState.Busy;wdas
                 StartCoroutine(SwitchPokemon(selectedMember));
             }
         }
@@ -237,7 +264,10 @@ public class BattleSystem : MonoBehaviour
             {
                 dialogBox.EnableMoveSelector(false);
                 dialogBox.EnableDialogText(true);
-                StartCoroutine(RunTurns(BattleAction.Move));
+                //StartCoroutine(RunTurns(BattleAction.Move));
+                player1Slots[currentSlot].Pokemon.CurrentMove = playerUnit.Pokemon.Moves[currentMove];
+                player1Slots[currentSlot].Pokemon.CurrentMove.target = player2Slots[0]; //TODO: Dejar elegir esto en un futuro
+                player1Slots[currentSlot].battleAction = BattleAction.Move;
             }
         }
         else if (Input.GetKeyDown(KeyCode.X))
@@ -268,7 +298,8 @@ public class BattleSystem : MonoBehaviour
     void OpenParyScreen()
     {
         state = BattleState.PartyScreen;
-        partyScreen.SetPartyData(playerParty.Pokemons);
+        //partyScreen.SetPartyData(playerParty.Pokemons);
+        partyScreen.SetPartyData(player1Team.Pokemons);
         dialogBox.EnableActionSelector(false);
         partyScreen.gameObject.SetActive(true);
     }
@@ -277,6 +308,8 @@ public class BattleSystem : MonoBehaviour
      */
     void MoveSelection()
     {
+        dialogBox.SetMoveNames(player1Slots[currentSlot].Pokemon.Moves);
+
         state = BattleState.MoveSelection;
         dialogBox.EnableActionSelector(false);
         dialogBox.EnableDialogText(false);
@@ -376,10 +409,87 @@ public class BattleSystem : MonoBehaviour
             ActionSelection();
         }
     }
+    
+
     /*
      *  Metodo que dado un movimiento, el pokemon que lo hace y el target, ejecuta el movimiento
      */
     IEnumerator RunMove(BattleUnit sourceUnit, BattleUnit targetUnit, Move move)
+    {
+        //Comprobamos si esta congelado, paralizado, etc 
+        bool canRunMove = sourceUnit.Pokemon.OnBeforeMove();
+
+        if (!canRunMove) //Si no puede se acaba su turno
+        {
+            yield return ShowStatusChanges(sourceUnit.Pokemon);
+            //Acutalizamos la vida por si estaba confuso y se ha golpado a si mismo
+            yield return sourceUnit.Hud.UpdateHP();
+            yield break;
+        }
+
+        //UI
+        yield return ShowStatusChanges(sourceUnit.Pokemon);
+
+        move.PP--;
+        yield return dialogBox.TypeDialog($"{sourceUnit.Pokemon.Base.Name} used { move.Base.Name}");
+
+        //Comprobamos si no ha fallado
+        if (CheckIfMoveHits(move, sourceUnit.Pokemon, targetUnit.Pokemon))
+        {
+            sourceUnit.PlayAttackAnimation();
+            yield return new WaitForSeconds(Settings.animationDuration);
+
+            targetUnit.PlayHitAnimation();
+
+            //Comprobamos si es de categoria de estados (ni especial ni fisico)
+            if (move.Base.Category == MoveCategory.Status)
+            {
+                yield return RunMoveEffects(move.Base.Effects, sourceUnit.Pokemon, targetUnit.Pokemon, move.Base.Target);
+            }
+            else //Si entra aqui es que es un movimiento de ataque, ya sea especial o fisico
+            {
+                //Hacemos el daño que corresponda
+                var damageDetails = targetUnit.Pokemon.TakeDamage(move, sourceUnit.Pokemon);
+                yield return targetUnit.Hud.UpdateHP();
+                yield return ShowDamageDetails(damageDetails);
+
+                //Comprobamos si tiene algún efecto secundario
+                if (move.Base.SecondaryEffects != null && move.Base.SecondaryEffects.Count > 0 && targetUnit.Pokemon.CurrentHP > 0)
+                {
+                    foreach (var secondary in move.Base.SecondaryEffects)
+                    {
+                        var rnd = UnityEngine.Random.Range(1, 101);
+                        if (rnd <= secondary.Chance)
+                        {
+                            yield return RunMoveEffects(secondary, sourceUnit.Pokemon, targetUnit.Pokemon, secondary.Target);
+                        }
+
+                    }
+                }
+            }
+
+            //Comprobamos si el objetivo se ha debilitado
+            if (targetUnit.Pokemon.CurrentHP <= 0)
+            {
+                yield return dialogBox.TypeDialog($"{targetUnit.Pokemon.Base.name} fainted");
+
+                targetUnit.PlayFaintAnimation();
+
+                yield return new WaitForSeconds(Settings.pauseDuration);
+
+                //Tenemos eliminarlo de la lista de pendientes en los ataques
+                DeleteFaintedPk(gameSlotsSorted, sourceUnit.Pokemon.CurrentMove.target);
+            }
+
+        }
+        else
+        {
+            yield return dialogBox.TypeDialog($"{sourceUnit.Pokemon.Base.name}'s attack missed");
+        }
+    }
+
+    /*
+    IEnumerator RunMove_OLD(BattleUnit sourceUnit, BattleUnit targetUnit, Move move)
     {
         bool canRunMove = sourceUnit.Pokemon.OnBeforeMove();
         if (!canRunMove)
@@ -440,6 +550,7 @@ public class BattleSystem : MonoBehaviour
             yield return dialogBox.TypeDialog($"{sourceUnit.Pokemon.Base.name}'s attack missed");
         }
     }
+    */
     /*
      * Metodo encargado de gestionar todos los eventos que ocurren al finalizar un turno o movimiento como por ejemplo los efectos de algunos estados alterados
      */
@@ -464,9 +575,27 @@ public class BattleSystem : MonoBehaviour
             sourceUnit.PlayFaintAnimation();
 
             yield return new WaitForSeconds(Settings.pauseDuration);
-            yield return CheckForBattleOver(sourceUnit);
         }
     }
+
+    public void DeleteFaintedPk(List<BattleUnit> gameSlotsSorted, BattleUnit toDelete)
+    {
+        int position = -1;
+        for (int i = 0; i < gameSlotsSorted.Count && position < 0; i++)
+        {
+            if (gameSlotsSorted[i] == toDelete)
+            {
+                position = i;
+            }
+        }
+
+        if (position != -1) // si no lo encuentra es porque este pokemon ya hizo su turno antes
+        {
+            gameSlotsSorted.RemoveAt(position);
+        }
+        
+    }
+
     /*
      * Metodo encargado de gestionar los efectos secundarios de los ataques, como bajadas de stats o estados alterados
      */
@@ -523,6 +652,35 @@ public class BattleSystem : MonoBehaviour
      */
     IEnumerator SwitchPokemon(Pokemon newPokemon)
     {
+        //Reset volatile status and boosts in current pokemon
+        player1Slots[currentSlot].Pokemon.ResetVolatileStatus(); //TODO: Esto no debe ser en la posicion 0
+        player1Slots[currentSlot].Pokemon.ResetStateBoosts();
+
+        //Check if current pokemon is still alive
+        if (player1Slots[currentSlot].Pokemon.CurrentHP > 0)
+        {
+            yield return dialogBox.TypeDialog($"Come back {player1Slots[0].Pokemon.Base.Name}");
+            player1Slots[0].PlayFaintAnimation(); //TODO. Esto es de momento hasta que haya una animacion de cambiar
+            yield return new WaitForSeconds(Settings.pauseDuration);
+        }
+
+        //Set up new pokemon in battle
+        player1Slots[currentSlot].SetUp(newPokemon);
+        dialogBox.SetMoveNames(newPokemon.Moves);
+        yield return dialogBox.TypeDialog($"Go {newPokemon.Base.Name}.");
+        yield return new WaitForSeconds(Settings.pauseDuration);
+
+
+        //Debug Info------------------------------------------
+        //Debug.Log("New pokemon info:");
+        //MyDebug.ShowPokemonState(playerUnit.Pokemon);
+        //----------------------------------------------------
+        //TODO: Cambiamos el orden del equipo (Para esto deberiamos poder conservar el orden del equipo original, como de momento es una movida pasamos del tema)
+    }
+
+    /*
+    IEnumerator SwitchPokemon_OLD(Pokemon newPokemon)
+    {
         //Debug Info------------------------------------------
         //Debug.Log("Current pokemon info:");
         //MyDebug.ShowPokemonState(playerUnit.Pokemon);
@@ -554,48 +712,82 @@ public class BattleSystem : MonoBehaviour
 
         state = BattleState.RunningTurn;
     }
+    */
     /*
      * Metodo encargado de determinar si una batalla ha terminado (cuando a alguno de los dos no les quedan pokemons se acaba
      */
     IEnumerator CheckForBattleOver(BattleUnit faintedUnit) //simplificar este metodo en la medida de lo posible!!
     {
+        //Comprobamos si es player o no
+        int pkAlive = 0;
+
         if (faintedUnit.IsPlayer)
         {
-            //Comprobamos si quedan mas pokemons vivos:
-            var nextPokemon = playerParty.GetHealthyPokemon();
-            if (nextPokemon != null)
+            pkAlive = getNumPokemonsAlive(player1Team);
+
+            if (pkAlive == 0) // Gana el enemigo
             {
-                OpenParyScreen();
+                BattleOver(false);//false si pierdes, true si ganas
+            }
+            else if (pkAlive < player1Slots.Count) //no le quedan pokemons que no esten en campo
+            {
+                //TODO: Nada (capar de alguna forma que no pueda seleccionar este slot ya)
+                player1Slots[currentSlot].enabled = false;
             }
             else
             {
-                BattleOver(false);
+                player1Slots[currentSlot].battleAction = BattleAction.None;
+
+                OpenParyScreen();
+
+                while (player1Slots[currentSlot].Pokemon.CurrentHP <= 0)
+                {
+                    yield return null;
+                }
+
+                yield return new WaitForSeconds(Settings.pauseDuration);
             }
         }
         else
         {
-            var nextPokemon = enemyParty.GetHealthyPokemon();
-            if (nextPokemon != null)
+            pkAlive = getNumPokemonsAlive(player2Team);
+
+            if (pkAlive == 0) //no le quedan pokemons
             {
-                //se selecciona el siguiente automaticamente de momento, en un futuro se elegira en el equipo 
-                //CopyPaste temporal:
-                //-----------------------------------------------------------------------------------------------------------------------
-                enemyUnit.SetUp(nextPokemon);
+                BattleOver(true); //Ganas tu
+            }
+            else if (pkAlive < player2Slots.Count) //no le quedan pokemons que no esten en campo
+            {
+                //TODO: Nada (capar de alguna forma que no pueda seleccionar este slot ya)
+                player2Slots[currentSlot].enabled = false;
+            }
+            else
+            {
+                Pokemon nextPokemon= player2Team.GetHealthyPokemon();
+
+                player2Slots[currentSlot].SetUp(nextPokemon); //TODO: Necesito saber que slot es
 
                 yield return (dialogBox.TypeDialog($"Next enemy pokemon is {nextPokemon.Base.Name}."));
 
                 yield return new WaitForSeconds(Settings.pauseDuration);
-
-                state = BattleState.RunningTurn;
-
-                //ActionSelection();
-                //-----------------------------------------------------------------------------------------------------------------------
             }
-            else
+
+        }
+    }
+
+    public int getNumPokemonsAlive(PokemonParty player1Team)
+    {
+        int pokemonsAlive = 0;
+
+        for (int i = 0; i < player1Team.Pokemons.Count; i++)
+        {
+            if (player1Team.Pokemons[i].CurrentHP > 0)
             {
-                BattleOver(true);
+                pokemonsAlive++;
             }
         }
+
+        return pokemonsAlive;
     }
 
     /*
@@ -640,6 +832,20 @@ public class BattleSystem : MonoBehaviour
     {
         state = BattleState.BattleOver;
         //resteamos el estado de los pokemons
+        player1Team.Pokemons.ForEach(p => p.OnBattleOver());
+        player2Team.Pokemons.ForEach(p => p.OnBattleOver());
+
+        //Esto es temporal, es para que si juegas varias veces con el entrenador este tenga los pokemons curados
+        player1Team.HealthParty();
+        player2Team.HealthParty();
+        OnBattleOver(won); //Evento
+    }
+
+    /*
+    void BattleOver_OLD(bool won)
+    {
+        state = BattleState.BattleOver;
+        //resteamos el estado de los pokemons
         playerParty.Pokemons.ForEach(p => p.OnBattleOver());
         enemyParty.Pokemons.ForEach(p => p.OnBattleOver());
 
@@ -648,6 +854,8 @@ public class BattleSystem : MonoBehaviour
         playerParty.HealthParty();
         OnBattleOver(won); //Evento
     }
+    */
+
     /*
      * Muestra en el dialogo de batalla todos los efectos que ha tenido el movimiento
      */
@@ -678,4 +886,331 @@ public class BattleSystem : MonoBehaviour
         }
     }
     #endregion
+
+
+    public void Setup(PokemonParty player1Team, PokemonParty player2Team)
+    {
+        //Game
+        this.player1Team = player1Team;
+        this.player2Team = player2Team;
+
+        //UI
+        currentAction = 0;
+        dialogBox.UpdateActionSelection(currentAction);
+        currentMove = 0;
+        currentMember = 0;
+
+        //Start!
+        StartCoroutine(ManageGame());
+    }
+
+    /*
+     * Manger del transcurso del juego
+     */
+    IEnumerator ManageGame()
+    {
+        InitSetupPokemons();
+
+        yield return CheckHabilities();
+
+        while (!isBattleOver)
+        {
+            yield return ActionSelector();
+
+            yield return ManageTurn();
+
+            yield return CheckEndEffects();
+
+            yield return SelectNewPokemon(); //Si ha muerto alguno durante el combate
+
+            Debug.Log("Como la batalla no ha acabado vamos a por otra ronda");
+        }
+
+    }
+
+    void InitSetupPokemons()
+    {
+        //Iniciamos los slots de ambos jugadores con los pokemons correspondientes
+        foreach (var slot in player1Slots)
+        {
+            //TODO (para dobles): Este metodo devuelve el primer pokemon del equipo que este vivo, habra que hacer otro metodo que devuelva tambien el segundo
+            slot.SetUp(player1Team.GetHealthyPokemon());
+        }
+
+        foreach (var slot in player2Slots)
+        {
+            slot.SetUp(player2Team.GetHealthyPokemon());
+        }
+
+        //Iniciamos la pantalla de party selection
+        partyScreen.Init();
+
+        /*
+        yield return dialogBox.TypeDialog($"A wild {enemyUnit.Pokemon.Base.Name} appeared.");
+        ActionSelection();
+        */
+    }
+
+    IEnumerator CheckHabilities()
+    {
+        yield return null;
+    }
+
+    IEnumerator ActionSelector()
+    {
+        ResetSlotsActions();
+        //TODO: En el futuro aqui habra que meter la posibilidad de ir hacia atras (en el hadle selection meter un onpress X y poner el current a -1)
+        for (int slot = 0; slot < player1Slots.Count; slot++)
+        {
+            currentSlot = slot;
+            ActionSelection();
+
+            while (player1Slots[currentSlot].battleAction == BattleAction.None)
+            {
+                yield return null;
+            }
+        }
+    }
+
+    public void ResetSlotsActions()
+    {
+        for (int i = 0; i < player1Slots.Count; i++)
+        {
+            player1Slots[0].battleAction = BattleAction.None;
+        }
+    }
+
+    IEnumerator ManageTurn()
+    {
+        state = BattleState.RunningTurn;
+
+        //Ponemos las prioridades
+        SetupPriorities();
+
+        //Ordenamos por prioridad y speed a igualdad de prioridad
+        SortSlots();
+
+
+        while (gameSlotsSorted.Count > 0) //los que vayan atacando o haciendo su turno los vamos borrando
+        {
+            //Tener en cuenta que si matas a un pokemon hay que eliminarlo de esta lista
+
+            if (gameSlotsSorted[0].GetPriority() == Settings.switchPriority)
+            {
+                var selectedPokemon = player1Team.Pokemons[currentMember]; //TODO: El current member debe ser un atributo del slot o guardar una lista con ellos (no siempre sera del player1)
+                yield return SwitchPokemon(selectedPokemon); //TODO: El switch pokemon debe ser a un slot en concreto, ahora mismo es generico
+            }
+            else if (gameSlotsSorted[0].GetPriority() == Settings.useItemPriority)
+            {
+                //TODO
+            }
+            else //Aqui se engloban todos los ataques
+            {
+                yield return RunMove(gameSlotsSorted[0], gameSlotsSorted[0].Pokemon.CurrentMove.target, gameSlotsSorted[0].Pokemon.CurrentMove);
+
+                //yield return RunAfterTurn(gameSlotsSorted[0]); //esto será para el tema del recoil y demas, de momento solo lo ponemos al final del turno, no al final del movimiento
+            }
+
+            gameSlotsSorted.RemoveAt(0); //siempre eliminamos el 0
+            //RefreshSpeeds(gameSlotsSorted); //Habra que adaptar este metodo o hacer uno similar para el ordenar en el propio turno (este solo debe tener en cuenta las velocidades, ya que la prioridad no va a cambiar)
+        }
+    }
+
+    IEnumerator CheckEndEffects()
+    {
+        yield return null;
+    }
+
+    IEnumerator SelectNewPokemon()
+    {
+        //Comprobamos si se ha muerto algun pokemon
+
+        //Nuestros
+        for (int i = 0; i < player1Slots.Count; i++)
+        {
+            if (player1Slots[i].Pokemon.CurrentHP <= 0)
+            {
+                currentSlot = i;
+                yield return CheckForBattleOver(player1Slots[i]);
+            }
+        }
+
+        //Enemigo
+        for (int i = 0; i < player2Slots.Count; i++)
+        {
+            if (player2Slots[i].Pokemon.CurrentHP <= 0)
+            {
+                currentSlot = i;
+                yield return CheckForBattleOver(player2Slots[i]);
+            }
+        }
+    }
+
+    void SetupPriorities()
+    {
+        //el player 1 ya viene preparado, hay que preparar el player 2, en un futuro esto deberia hacerse antes
+        SetupPlayer2Turn();
+
+        //Juntamos los slots, ya nos da igual que sea de player 1 o 2, a partir de ahora trabajamos con game Slots
+        MergeSlots();
+
+        //Tanto tuyas como del enemigo
+        SetPriorities(gameSlots);
+
+        DebugPrintPriorities();
+    }
+
+    void SortSlots()
+    {
+        //ordenar por prioridad y velocidad, a igualdad de velocidad un random
+        List<BattleUnit> gameSlotsOrderedByPriority = new List<BattleUnit>();
+
+        //Recorremos las prioridades y dentro de ellas las velocidades
+        for (int priority = Settings.maxPriority; priority >= Settings.minPriority; priority--) //-8 es el limite de prioridades por abajo y 7 es el limite por arriba
+        {
+            for (int i = 0; i < gameSlots.Count; i++)
+            {
+                if (gameSlots[i].GetPriority() == priority)
+                {
+                    gameSlotsOrderedByPriority.Add(gameSlots[i]); //con esto los tenemos ordenados por prioridad
+                }
+            }
+        }
+
+        RefreshSpeeds(gameSlotsOrderedByPriority);
+
+        DebugPrintOrder();
+    }
+
+    void RefreshSpeeds(List<BattleUnit> gameSlotsOrderedByPriority)
+    {
+        List<BattleUnit> auxList = new List<BattleUnit>();
+        int currentPriority = Settings.maxPriority;
+        int lastPriority = Settings.maxPriority;
+        gameSlotsSorted = new List<BattleUnit>(); //reiniciamos esta lista para que no coja nada del turno anterior
+
+        for (int i = 0; i < gameSlotsOrderedByPriority.Count; i++)
+        {
+            currentPriority = gameSlotsOrderedByPriority[i].GetPriority();
+            if (currentPriority == lastPriority)//añadimos a la lista
+            {
+                auxList.Add(gameSlotsOrderedByPriority[i]);
+            }
+            else //significa que cambiamos de prioridad
+            {
+                OrderBySpeed(auxList); //esto añade a la lista final los de este rango de prioridad
+
+                auxList.Clear();
+                auxList.Add(gameSlotsOrderedByPriority[i]); //el primero del siguiente rango
+            }
+
+            lastPriority = currentPriority;
+        }
+
+        OrderBySpeed(auxList); //los que queden con la ultima prioridad tambien los añadimos
+        auxList.Clear();
+    }
+
+    public void DebugPrintOrder()
+    {
+        for (int i = 0; i < gameSlotsSorted.Count; i++)
+        {
+            Debug.Log($"El slot {i} tiene prioridad {gameSlotsSorted[i].GetPriority()} y una velocidad de {gameSlotsSorted[i].Pokemon.Speed}");
+        }
+    }
+
+    public void DebugPrintPriorities()
+    {
+        for (int i = 0; i < gameSlots.Count; i++)
+        {
+            Debug.Log($"El slot {i} tiene prioridad {gameSlots[i].GetPriority()}");
+        }
+    }
+
+    void OrderBySpeed(List<BattleUnit> inputList) //esto ya lo añade a la definitivas
+    {
+        while (inputList.Count != 0) 
+        {
+            int position = GetFaster(inputList);
+            gameSlotsSorted.Add(inputList[position]);
+            inputList.RemoveAt(position);
+        }
+    }
+
+    public int GetFaster(List<BattleUnit> inputList)
+    {
+        int position = 0;
+        int best = inputList[position].Pokemon.Speed;
+        BattleUnit faster = inputList[position];
+        
+        for (int i = 1; i < inputList.Count; i++)
+        {
+            if (best < inputList[i].Pokemon.Speed)
+            {
+                //faster = inputList[i];
+                best = inputList[i].Pokemon.Speed;
+                position = i;
+            }
+            else if (best == inputList[i].Pokemon.Speed)
+            {
+                if (UnityEngine.Random.Range(0, 101) > 50)// A igualdad de condiciones es un random
+                {
+                    //faster = inputList[i];
+                    position = i;
+                }
+            }
+        }
+
+        return position;
+    }
+
+    public void SetupPlayer2Turn()
+    {
+        for (int i = 0; i < player2Slots.Count; i++)
+        {
+            player2Slots[i].Pokemon.CurrentMove = player2Slots[i].Pokemon.GetRandomMove();
+            player2Slots[i].Pokemon.CurrentMove.target = player1Slots[UnityEngine.Random.Range(0, player1Slots.Count)];
+            player2Slots[i].battleAction = BattleAction.Move;
+        }
+    }
+
+    public void MergeSlots()
+    {
+        gameSlots = new List<BattleUnit>();
+
+        foreach (var slot in player1Slots)
+        {
+            gameSlots.Add(slot);
+        }
+
+        foreach (var slot in player2Slots)
+        {
+            gameSlots.Add(slot);
+        }
+    }
+
+    public void SetPriorities(List<BattleUnit> currentSlots)
+    {
+        for (int i = 0; i < currentSlots.Count; i++)
+        {
+            switch (currentSlots[i].battleAction)
+            {
+                case BattleAction.Move:
+                    currentSlots[i].SetPriority(currentSlots[i].Pokemon.CurrentMove.Base.Priority);
+                    break;
+                case BattleAction.SwitchPokemon:
+                    currentSlots[i].SetPriority(Settings.switchPriority);
+                    break;
+                case BattleAction.UseItem:
+                    currentSlots[i].SetPriority(Settings.useItemPriority);
+                    break;
+                case BattleAction.Run:
+                    currentSlots[i].SetPriority(Settings.runPriority);
+                    break;
+                case BattleAction.None:
+                    //esto no deberia ocurrir nunca
+                    break;
+            }
+        }
+    }
 }

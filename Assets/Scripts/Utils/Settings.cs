@@ -12,4 +12,10 @@ public static class Settings
     public static float pauseDuration = 1f;
     //duracion de la animacion
     public static float animationDuration = 1f;
+
+    public static int switchPriority = 7;
+    public static int useItemPriority = 6;
+    public static int runPriority = 8;
+    public static int maxPriority = 8;
+    public static int minPriority = -8;
 }

@@ -125,7 +125,7 @@ public class ConditionsDB
                 {
                     //Sleep for 1-3 turns
                     pokemon.VolatileStatusTime=Random.Range(1,5);
-                    Debug.Log($"Will be confused for {pokemon.VolatileStatusTime} moves");
+                    //Debug.Log($"Will be confused for {pokemon.VolatileStatusTime} moves");
                 },
                 OnBeforeMove = (Pokemon pokemon) =>
                 {

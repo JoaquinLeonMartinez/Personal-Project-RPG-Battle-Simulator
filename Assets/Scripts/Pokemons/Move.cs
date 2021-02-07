@@ -7,6 +7,8 @@ public class Move
     public MoveBase Base { get; set; }
     public int PP { get; set; }
 
+    public BattleUnit target;
+
     public Move(MoveBase _base)
     {
         Base = _base;

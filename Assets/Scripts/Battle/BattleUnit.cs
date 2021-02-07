@@ -13,6 +13,12 @@ public class BattleUnit : MonoBehaviour
 
     [SerializeField] BattleHud hud;
 
+    public BattleAction battleAction = BattleAction.None;
+
+    int priority = 0;
+
+    public bool enabled;
+
     public BattleHud Hud
     {
         get
@@ -103,5 +109,15 @@ public class BattleUnit : MonoBehaviour
         sequence.Join(image.DOFade(0F, 0.5f));
         //esto deja el BattleUnit abajo, pero en realidad da igual porque cuando se seleccione otro pokemon se volvera a setear
     }
+
+    public void SetPriority(int _priority)
+    {
+        this.priority = _priority;
+    }
+    public int GetPriority()
+    {
+        return this.priority;
+    }
+
 
 }

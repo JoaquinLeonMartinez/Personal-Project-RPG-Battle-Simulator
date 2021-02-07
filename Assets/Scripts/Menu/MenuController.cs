@@ -10,7 +10,8 @@ public class MenuController : MonoBehaviour
 {
     [SerializeField] Color highlightedColor;
 
-    public event Action<bool> OnBattleStart;
+    public event Action OnBattleStart;
+    //public event Action<bool> OnBattleStart;
 
     MenuState state;
 
@@ -71,7 +72,8 @@ public class MenuController : MonoBehaviour
     public void StartBattle(bool isTrainerBattle)
     {
         //lanzamos el evento para que ya quien sea que lo reciba (el GameController) haga lo que considere necesario.
-        OnBattleStart(isTrainerBattle);
+        //OnBattleStart(isTrainerBattle);
+        OnBattleStart();
     }
 
     public void HandleUpdate()

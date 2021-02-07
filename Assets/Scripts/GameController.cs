@@ -25,7 +25,8 @@ public class GameController : MonoBehaviour
 
     private void Start()
     {
-        menuController.OnBattleStart += StartBattle; //nos subscrivimos al evento e indicamos que accion realizaremos 
+        //menuController.OnBattleStart += StartBattle; //nos subscribimos al evento e indicamos que accion realizaremos 
+        menuController.OnBattleStart += StartBattleJoaquin; //nos subscribimos al evento e indicamos que accion realizaremos 
         battleSystem.OnBattleOver += EndBattle;
     }
 
@@ -72,6 +73,23 @@ public class GameController : MonoBehaviour
         battleSystem.StartBattle(playerParty, enemyParty);
         //playerController.gameObject.SetActive(false);
         //En caso de realmente pasar del juego a la pantalla de batalla habria que cambiar la camara, ya que no serían la misma, pero en este caso solo tenemos una
+    }
+
+    void StartBattleJoaquin()
+    {
+        //Actualizamos el estado del juego
+        state = GameState.Battle;
+
+        //Actualizamos la UI
+        battleSystem.gameObject.SetActive(true);
+        mainMenu.SetActive(false);
+
+        //Indicamos los equipos de cada jugador
+        PokemonParty playerParty = playerController.GetComponent<PokemonParty>();
+        PokemonParty enemyParty = enemyController.GetComponent<PokemonParty>();
+
+        //Llamamos al battle system
+        battleSystem.Setup(playerParty, enemyParty);
     }
 
     void EndBattle(bool won)
